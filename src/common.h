@@ -24,11 +24,11 @@ public:
 	int  GetSecondsDiff();
 	bool LoadFile();
 	bool SaveFile();
-	int  FindNode(string &node,string &nodeParam);
-	vector<string>::iterator&  FindGlobalDirective(string &directive);
+	int  FindNode(string &node,string nodeParam[],int n);
+	vector<string>::iterator  FindGlobalDirective(string &directive,string param[],int n);
 	int  FindNodeDirective();
-	bool AddNode(string &node,vector<string>::iterator &it,string &nodeParam);
-	bool AddDirective(string &directive,vector<string>::iterator &it,string nodeParam[]);
+	bool AddNode(string &node,vector<string>::iterator &it,string nodeParam[],int n);
+	bool AddDirective(string &directive,vector<string>::iterator &it,string nodeParam[],int n);
 	
 	vector<string>::iterator GetIterator(int offset = 0);
 	vector<string>::iterator GetEndIterator();

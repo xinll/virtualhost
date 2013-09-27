@@ -44,48 +44,6 @@ bool UpLoadFile()
 	ftpClient.ftp_quit();*/
 	return true;
 }
-bool BakConf(string &userName)
-{
-	chdir("/etc/httpd/vhost.d/");
-	string backupWhat = userName;
-	backupWhat.append(".conf");
-	string backupDir = "/backup_main/vhost-conf.zip";
-	string cmd;
-	cmd = "zip -qu ";
-	cmd.append(backupDir);
-	cmd.append(" ");
-	cmd.append(backupWhat);
-	syslog(LOG_INFO,cmd.c_str());
-	int ret = system(cmd.c_str());
-	chdir("/");
-	if(ret != -1 && WIFEXITED(ret) && (WEXITSTATUS(ret) == 0 || WEXITSTATUS(ret) == 12))
-		return true;
-	else
-		return false;
-}
-
-bool RestoreConf(string &userName)
-{
-	string restoreWhat = userName;
-	restoreWhat.append(".conf");
-	
-	string backupDir = "/backup_main/vhost-conf.zip";
-	string cmd = "unzip -qo ";
-	cmd.append(backupDir);
-	cmd.append(" ");
-	cmd.append(restoreWhat);
-	cmd.append(" ");
-	cmd.append("-d /etc/httpd/vhost.d");
-	syslog(LOG_INFO,cmd.c_str());
-	int ret = system(cmd.c_str());
-
-	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
-	{
-		return true;
-	}
-	else
-		return false;
-}
 
 bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 {

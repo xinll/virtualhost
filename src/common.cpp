@@ -64,14 +64,40 @@ vector<string>::iterator CVirtualHost::GetEndIterator()
 	return it;
 }
 
-int CVirtualHost::FindNode(string &node,string &nodeParam)
+int CVirtualHost::FindNode(string &node,string nodeParam[],int n)
 {
 	;
 }
 
-vector<string>::iterator& FindGlobalDirective(string &directive)
+vector<string>::iterator CVirtualHost::FindGlobalDirective(string &directive,string param[],int n)
 {
-	;
+	vector<string>::iterator it = vt_conf.begin();
+	vector<string> vt_tmp;
+	bool exist = true;
+	for(; it < vt_conf.end(); it++)
+	{
+		exist = true;
+		vt_tmp.clear();
+		Split((*it),vt_tmp);
+		if(vt_tmp.size() > 0 && IsEqualString(vt_tmp[0],directive))
+		{
+			if(vt_tmp.size() < n)
+				continue;
+			for(int i = 0; i < n; i++)
+			{
+				if(!StrInVt(param[i],vt_tmp))
+				{
+					exist = false;
+					break;
+				}
+			}
+			if(!exist)
+				continue;
+			else
+				break;
+		}
+	}
+	return it;
 }
 
 int CVirtualHost::FindNodeDirective()
@@ -79,12 +105,12 @@ int CVirtualHost::FindNodeDirective()
 	;
 }
 
-bool CVirtualHost::AddNode(string &node,vector<string>::iterator &it,string &nodeParam)
+bool CVirtualHost::AddNode(string &node,vector<string>::iterator &it,string nodeParam[],int n)
 {
 	;
 }
 
-bool AddDirective(string &directive,vector<string>::iterator &it,string nodeParam[])
+bool AddDirective(string &directive,vector<string>::iterator &it,string nodeParam[],int n)
 {
 	;
 }

@@ -20,5 +20,10 @@ string MakeConfPath(string &ftpName);
 
 void Split(string source,vector<string> &result);
 
-
 bool IsEqualString(string first,string second);
+
+bool RestoreConf(string &userName);
+
+bool BakConf(string &userName);
+
+bool StrInVt(string &str,vector<string> &vt);
