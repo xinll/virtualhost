@@ -31,7 +31,7 @@ void* ProcSocket(void *arg);
 int main(int argc,char **argv)
 {
 	openlog("apache_conf",LOG_PID,0);
-	pid_t pid = fork();
+	/*pid_t pid = fork();
 	if(pid < 0)
 	{
 		exit(EXIT_FAILURE);
@@ -55,7 +55,7 @@ int main(int argc,char **argv)
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
-	
+	*/
 	//初始化python环境
 /*	if(!InitPythonEnv())
 	{

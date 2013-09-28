@@ -28,8 +28,9 @@ public:
 	vector<string>::iterator  FindGlobalDirective(string &directive,string param[],int n);
 	int  FindNodeDirective();
 	bool AddNode(string &node,vector<string>::iterator &it,string nodeParam[],int n);
-	bool AddDirective(string &directive,vector<string>::iterator &it,string nodeParam[],int n);
+	void AddDirective(string &directive,vector<string>::iterator &it,string nodeParam[],int n);
 	
+	vector<string>::iterator EraseItem(vector<string>::iterator it);
 	vector<string>::iterator GetIterator(int offset = 0);
 	vector<string>::iterator GetEndIterator();
 	string GetLastErrorStr() {return errorInfo;}

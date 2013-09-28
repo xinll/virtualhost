@@ -8,6 +8,7 @@
 #include "common.h"
 #include "tools.h"
 #include <stdio.h>
+#include <string.h>
 
 CVirtualHost::CVirtualHost(string &ftpName)
 {
@@ -74,12 +75,30 @@ vector<string>::iterator CVirtualHost::FindGlobalDirective(string &directive,str
 	vector<string>::iterator it = vt_conf.begin();
 	vector<string> vt_tmp;
 	bool exist = true;
-	for(; it < vt_conf.end(); it++)
+	bool node  = false;
+	for(; it != vt_conf.end(); it++)
 	{
+		const char* tmp = (*it).c_str();
+		while((*tmp) == 32 || (*tmp) == 9) //获取第一个非空格和tab的字符
+			tmp++;
+		if(*tmp == '#')
+			continue;
+		if(*tmp == '<')
+		{
+			if(strncasecmp("virtualhost",tmp+1,strlen("virtualhost")) == 0)
+				continue;
+			else if(*(tmp+1) == '/')
+			{
+				node = false;
+			}
+			else
+				node = true;
+			continue;
+		}
 		exist = true;
 		vt_tmp.clear();
 		Split((*it),vt_tmp);
-		if(vt_tmp.size() > 0 && IsEqualString(vt_tmp[0],directive))
+		if(vt_tmp.size() > 0 && IsEqualString(vt_tmp[0],directive) && !node)
 		{
 			if(vt_tmp.size() < n)
 				continue;
@@ -105,12 +124,23 @@ int CVirtualHost::FindNodeDirective()
 	;
 }
 
+vector<string>::iterator CVirtualHost::EraseItem(vector<string>::iterator it)
+{
+	return vt_conf.erase(it);
+}
 bool CVirtualHost::AddNode(string &node,vector<string>::iterator &it,string nodeParam[],int n)
 {
 	;
 }
 
-bool AddDirective(string &directive,vector<string>::iterator &it,string nodeParam[],int n)
+void CVirtualHost::AddDirective(string &directive,vector<string>::iterator &it,string nodeParam[],int n)
 {
-	;
+	string oneRecord = directive;
+	for(int i = 0; i < n; i++)
+	{
+		oneRecord.append(" ");
+		oneRecord.append(nodeParam[i]);
+	}
+	oneRecord.append(NEWLINE);
+	vt_conf.insert(it,oneRecord);
 }

@@ -10,6 +10,7 @@
 #include <string.h>
 #include <syslog.h>
 #include "tools.h"
+#include "common.h"
 
 bool ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo);
 bool ProcFilePermission(vector<pair<string,string> > &vt_param,string &errInfo);
@@ -54,7 +55,7 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 		return false;
 	}
 	pair<string,string> p = vt_param[1];
-	if(IsEqualString(p.first,NFUNC))
+	if(!IsEqualString(p.first,NFUNC))
 	{
 		errInfo.append("参数错误，未指定操作类型");
 		errInfo.append(SPLIT);
@@ -151,7 +152,7 @@ bool ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
 		errInfo.append(SPLIT);
 		return false;
 	}
-	int errorNum = -1;
+	string errorNum = "";
 	string errorPage = "";
 	string userName = "";
 	vector<pair<string,string> >::iterator it = vt_param.begin();
@@ -171,11 +172,11 @@ bool ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
 		}
 		if((*it).first.compare(ERRORNMSTR) == 0)
 		{
-			errorNum = atoi((*it).second.c_str());
+			errorNum = (*it).second;
 			continue;
 		}
 	}
-	if(errorNum <0 || errorPage.empty() || userName.empty())
+	if(errorNum.empty() || errorPage.empty() || userName.empty())
 	{
 		errInfo.append("errorNum或errorPage或ftpName不合法");
 		errInfo.append(SPLIT);
@@ -189,35 +190,27 @@ bool ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
 		errInfo.append(SPLIT);
 		return false;
 	}
-	string conf_path = MakeConfPath(userName);
-
-	vector<string> *vt_conf = new vector<string>();
-
-	if(!ReadFile(vt_conf,conf_path.c_str()))
+	CVirtualHost virtualHost(userName);
+	if(!virtualHost.LoadFile())
 	{
-		//读取文件出错
-		errInfo.append("读取配置文件出错:");
-		errInfo.append(userName);
-		errInfo.append(SPLIT);
 		return false;
 	}
-	ChangeError(errorNum,errorPage,vt_conf);
-	if(!WriteFile(vt_conf,conf_path.c_str()))
+	string par[2] = {errorNum,errorPage};
+	string directive = ERRORHEAD;
+	vector<string>::iterator it_directive = virtualHost.FindGlobalDirective(directive,par,1);
+	if(it_directive != virtualHost.GetEndIterator())
 	{
-		//写文件出错
-		errInfo.append("写入配置文件出错:");
-		errInfo.append(userName);
-		errInfo.append(SPLIT);
-		//恢复配置
-		if(!RestoreConf(userName))
-		{
-			errInfo.append("恢复配置文件失败:");
-			errInfo.append(userName);
-			errInfo.append(SPLIT);
-		}
+		it_directive = virtualHost.EraseItem(it_directive);
+	}
+	else
+	{
+		it_directive = virtualHost.GetIterator(1);
+	}
+	virtualHost.AddDirective(directive,it_directive,par,2);
+	if(!virtualHost.SaveFile())
+	{
 		return false;
 	}
-	delete vt_conf;
 	return true;
 }
 

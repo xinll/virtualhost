@@ -10,37 +10,37 @@ OBJS=${TARGET_DIR}/main.o\
 all:${TARGET_DIR}/libchangePermission.so ${TARGET_DIR}/libserverError.so ${TARGET_DIR}/libsock.so ${TARGET_DIR}/libftp.so ${TARGET_DIR}/libtools.so ${TARGET_DIR}/libhostOperation.so ${TARGET_DIR}/libconfig.so ${TARGET} cleanObj
 
 ${TARGET_DIR}/libchangePermission.so:${SRC_DIR}/changePermission.cpp
-	g++ -w -D__unix -fPIC -shared $? -o $@
+	g++ -g -w -D__unix -fPIC -shared $? -o $@
 
 ${TARGET_DIR}/libserverError.so:${SRC_DIR}/serverError.cpp
-	g++ -w -D__unix -fPIC -shared $? -o $@
+	g++ -g -w -D__unix -fPIC -shared $? -o $@
 
 ${TARGET_DIR}/libsock.so:${SRC_DIR}/sock.cpp
-	g++ -w -D__unix -fPIC -shared $? -o $@
+	g++ -g -w -D__unix -fPIC -shared $? -o $@
 
 ${TARGET_DIR}/libtools.so:${SRC_DIR}/tools.cpp
-	g++ -w -D__unix -fPIC -shared $? -o $@
+	g++ -g -w -D__unix -fPIC -shared $? -o $@
 
 ${TARGET_DIR}/libhostOperation.so:${SRC_DIR}/hostOperation.cpp
-	g++ -w -D__unix -fPIC -shared $? -o $@
+	g++ -g -w -D__unix -fPIC -shared $? -o $@
 
 ${TARGET_DIR}/libftp.so:${SRC_DIR}/ftp.cpp
-	g++ -w -D__unix -fPIC -shared $? -o $@
+	g++ -g -w -D__unix -fPIC -shared $? -o $@
 
 ${TARGET_DIR}/libconfig.so:${SRC_DIR}/config.cpp
-	g++ -w -D__unix -fPIC -shared $? -o $@
+	g++ -g -w -D__unix -fPIC -shared $? -o $@
 
 ${TARGET}:${OBJS}
-	g++ $? -lchangePermission -lhostOperation -lserverError -lsock -ltools -lftp -lconfig -lpthread -L./tmp/ -o $@
+	g++ -g $? -lchangePermission -lhostOperation -lserverError -lsock -ltools -lftp -lconfig -lpthread -L./tmp/ -o $@
 
 ${TARGET_DIR}/main.o:main.cpp
-	g++ -c $? -o $@
+	g++ -g -c $? -o $@
 
 ${TARGET_DIR}/mysqlbak.o:${SRC_DIR}/procMySQL.cpp
-	g++ -c $? -o $@
+	g++ -g -c $? -o $@
 
 ${TARGET_DIR}/common.o:${SRC_DIR}/common.cpp
-	g++ -c $? -o $@
+	g++ -g -c $? -o $@
 
 cleanObj:
 	rm ${OBJS}

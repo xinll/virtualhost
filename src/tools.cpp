@@ -173,7 +173,7 @@ bool RestoreConf(string &userName)
 bool StrInVt(string &str,vector<string> &vt)
 {
 	vector<string>::iterator it = vt.begin();
-	for(; it < vt.end(); it++)
+	for(; it != vt.end(); it++)
 	{
 		if(IsEqualString((*it),str))
 			return true;
