@@ -9,29 +9,46 @@
 #include <string>
 #include <iostream>
 #include <vector>
+
 using namespace std;
 
 class CVirtualHost
 {
 private:
 	vector<string> vt_conf;
-	vector<string>::iterator it;
+//	vector<string>::iterator it;
 	time_t         lastModified;
 	string         ftpName;
 	string         errorInfo;
-public:
+	bool           isUsing;
+	static         vector<CVirtualHost*> vt_virtualHost;
+
+
+private:
 	CVirtualHost(string &ftpName);
+public:
 	int  GetSecondsDiff();
 	bool LoadFile();
 	bool SaveFile();
-	int  FindNode(string &node,string nodeParam[],int n);
-	vector<string>::iterator  FindGlobalDirective(string &directive,string param[],int n);
-	int  FindNodeDirective();
-	bool AddNode(string &node,vector<string>::iterator &it,string nodeParam[],int n);
+	vector<string>::iterator  FindNode(string &node,vector<string> &nodeParam,vector<string>::iterator it);
+	vector<string>::iterator  FindGlobalDirective(string &directive,string param[],int n,vector<string>::iterator it);
+	vector<string>::iterator  FindNodeDirective(vector<string>::iterator it,string &directive,vector<string> &vt_param);
+	vector<string>::iterator AddNode(string &node,vector<string>::iterator &it,string nodeParam[],int n);
 	void AddDirective(string &directive,vector<string>::iterator &it,string nodeParam[],int n);
 	
 	vector<string>::iterator EraseItem(vector<string>::iterator it);
 	vector<string>::iterator GetIterator(int offset = 0);
 	vector<string>::iterator GetEndIterator();
 	string GetLastErrorStr() {return errorInfo;}
+	string GetFileName()     {return ftpName;}
+
+	static CVirtualHost* GetVirtualHost(string &fileName);
+	static void ReleaseVirtualHost(string &fileName);
+private:
+	bool   IsUsing()          {return isUsing;}
+	void   ResetUsingState()  {isUsing = false;}
+	bool   IsNote(const char *line);
+	const char* GetFirstNotSpaceChar(const char* line);
+	bool   IsNodeStart(const char *line);
+	bool   IsNodeEnd(const char *line);
 };

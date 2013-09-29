@@ -63,6 +63,7 @@ int main(int argc,char **argv)
 		exit(EXIT_FAILURE);
 	}
 	*/
+
 	pthread_mutex_init(&mutex,NULL);
 
 	/*加载配置文件，读取数据*/
@@ -187,44 +188,7 @@ void* ProcSocket(void *arg)
 			char *thisParam = tmp;
 			tmp = pStr + strlen(PARAMEND);
 
-			string fileName = "";
-			bool exist = false;
 			pair<string,string> p = vt_param[0];
-			
-			for(int i = 0; i < vt_param.size(); i++)
-			{
-				if(vt_param[i].first.compare(USERNAME) == 0)
-				{
-					fileName = vt_param[i].second;
-					pthread_mutex_lock(&mutex);
-					vector<string>::iterator it = vt_fileName.begin();
-					for(; it != vt_fileName.end(); it++)
-					{
-						if((*it).compare(fileName) == 0)
-						{
-							exist = true;
-							break;
-						}
-					}
-					if(exist)
-					{
-						syslog(LOG_ERR,"the %s from %s is editing",fileName.c_str(),clientAddr);
-						pthread_mutex_unlock(&mutex);
-						errInfo.append("用户配置文件正在修改,请稍后操作。");
-						errInfo.append(PARAMEND);
-						acceptSock->SendErrorInfo(errInfo.c_str());
-						delete acceptSock; //删除资源
-						pthread_exit(NULL);
-					}
-					else
-					{
-						vt_fileName.push_back(fileName);
-					}
-					pthread_mutex_unlock(&mutex);
-					break;
-				}
-			}
-			
 			if(p.first.compare(COMTYPE) ==0)
 			{
 				if(p.second.compare(STRHOST) == 0)
@@ -235,20 +199,6 @@ void* ProcSocket(void *arg)
 						errInfo.append(strParam);
 					}
 				}
-			}
-			if(!fileName.empty())
-			{
-				pthread_mutex_lock(&mutex);
-				vector<string>::iterator it = vt_fileName.begin();
-				for(; it != vt_fileName.end(); it++)
-				{
-					if((*it).compare(fileName) == 0)
-					{
-						vt_fileName.erase(it);
-						break;
-					}
-				}
-				pthread_mutex_unlock(&mutex);
 			}
 		}
 	}

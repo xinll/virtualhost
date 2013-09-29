@@ -4,15 +4,13 @@ TARGET_DIR=tmp
 TARGET=${TARGET_DIR}/apache_conf
 OBJS=${TARGET_DIR}/main.o\
 	 ${TARGET_DIR}/mysqlbak.o\
-	 ${TARGET_DIR}/common.o
+	 ${TARGET_DIR}/common.o\
+	 ${TARGET_DIR}/action.o
 
 .PHONY:all
-all:${TARGET_DIR}/libchangePermission.so ${TARGET_DIR}/libserverError.so ${TARGET_DIR}/libsock.so ${TARGET_DIR}/libftp.so ${TARGET_DIR}/libtools.so ${TARGET_DIR}/libhostOperation.so ${TARGET_DIR}/libconfig.so ${TARGET} cleanObj
+all:${TARGET_DIR}/libchangePermission.so ${TARGET_DIR}/libsock.so ${TARGET_DIR}/libftp.so ${TARGET_DIR}/libtools.so ${TARGET_DIR}/libhostOperation.so ${TARGET_DIR}/libconfig.so ${TARGET} cleanObj
 
 ${TARGET_DIR}/libchangePermission.so:${SRC_DIR}/changePermission.cpp
-	g++ -g -w -D__unix -fPIC -shared $? -o $@
-
-${TARGET_DIR}/libserverError.so:${SRC_DIR}/serverError.cpp
 	g++ -g -w -D__unix -fPIC -shared $? -o $@
 
 ${TARGET_DIR}/libsock.so:${SRC_DIR}/sock.cpp
@@ -31,7 +29,7 @@ ${TARGET_DIR}/libconfig.so:${SRC_DIR}/config.cpp
 	g++ -g -w -D__unix -fPIC -shared $? -o $@
 
 ${TARGET}:${OBJS}
-	g++ -g $? -lchangePermission -lhostOperation -lserverError -lsock -ltools -lftp -lconfig -lpthread -L./tmp/ -o $@
+	g++ -g $? -lchangePermission -lhostOperation -lsock -ltools -lftp -lconfig -lpthread -L./tmp/ -o $@
 
 ${TARGET_DIR}/main.o:main.cpp
 	g++ -g -c $? -o $@
@@ -40,6 +38,9 @@ ${TARGET_DIR}/mysqlbak.o:${SRC_DIR}/procMySQL.cpp
 	g++ -g -c $? -o $@
 
 ${TARGET_DIR}/common.o:${SRC_DIR}/common.cpp
+	g++ -g -c $? -o $@
+
+${TARGET_DIR}/action.o:${SRC_DIR}/action.cpp
 	g++ -g -c $? -o $@
 
 cleanObj:

@@ -10,11 +10,14 @@
 #include <stdio.h>
 #include <string.h>
 
+extern pthread_mutex_t mutex;
+vector<CVirtualHost*> CVirtualHost:: vt_virtualHost;
 CVirtualHost::CVirtualHost(string &ftpName)
 {
 	this->ftpName = ftpName;
 	lastModified  = time(NULL);
 	errorInfo     = "";
+	isUsing       = false;
 }
 
 int CVirtualHost::GetSecondsDiff()
@@ -24,12 +27,15 @@ int CVirtualHost::GetSecondsDiff()
 
 bool CVirtualHost::LoadFile()
 {
+	if(vt_conf.size() != 0)
+		return true;
 	string path = MakeConfPath(ftpName);
 	if(!ReadFile(&vt_conf,path.c_str()))
 	{
 		char buf[256];
 		sprintf(buf,"读取配置文件%s.conf失败",ftpName.c_str());
 		errorInfo = buf;
+		vt_conf.clear();
 		return false;
 	}
 	return true;
@@ -65,23 +71,85 @@ vector<string>::iterator CVirtualHost::GetEndIterator()
 	return it;
 }
 
-int CVirtualHost::FindNode(string &node,string nodeParam[],int n)
+vector<string>::iterator CVirtualHost::FindNode(string &node,vector<string> &nodeParam,vector<string>::iterator it)
 {
-	;
+	vector<string> vt_tmp;
+	bool exist = false;
+	for(; it != vt_conf.end(); it++)
+	{
+		char *tmp = (*it).c_str();
+		if(!IsNodeStart(tmp))
+			continue;
+		else
+		{
+			char *directiveStart = GetFirstNotSpaceChar(tmp) + 1;
+			Split(directiveStart,vt_tmp);
+			if(IsEqualString(node,vt_tmp[0]))
+			{
+				vector<string>::iterator it_param = vt_tmp.begin();
+				for(; it_param != vt_param.end(); it_param++)
+				{
+					if(!StrInVt((*it_param),vt_tmp))
+						break;
+				}
+				if(it_param == vt_tmp.end() && nodeParam.size() != 0)
+					exist = true;
+				if(nodeParam.size() == 0 && vt_tmp.size() == 0)
+					exist = true;
+			}
+			else
+				continue;
+		}
+		if(exist)
+			break;
+	}
+	return it;
 }
 
-vector<string>::iterator CVirtualHost::FindGlobalDirective(string &directive,string param[],int n)
+const char* CVirtualHost::GetFirstNotSpaceChar(const char* line)
 {
-	vector<string>::iterator it = vt_conf.begin();
+	while(*line == 32 || *line == 9)
+		line++;
+	return line;
+}
+
+bool CVirtualHost::IsNote(const char* line)
+{
+	const char *tmp = GetFirstNotSpaceChar(line);
+	if(*tmp == '#')
+		return true;
+	return false;
+}
+
+bool CVirtualHost::IsNodeStart(const char* line)
+{
+	if(IsNote(line))
+		return false;
+	const char *tmp = GetFirstNotSpaceChar(line);
+	if(*tmp == '<')
+		return true;
+	return false;
+}
+
+bool CVirtualHost::IsNodeEnd(const char *line)
+{
+	if(IsNote(line))
+		return false;
+	const char *tmp = GetFirstNotSpaceChar(line);
+	if(strncmp(tmp,"</",strlen("</")) == 0)
+		return true;
+	return false;
+}
+
+vector<string>::iterator CVirtualHost::FindGlobalDirective(string &directive,string param[],int n,vector<string>::iterator it)
+{
 	vector<string> vt_tmp;
 	bool exist = true;
 	bool node  = false;
 	for(; it != vt_conf.end(); it++)
 	{
 		const char* tmp = (*it).c_str();
-		while((*tmp) == 32 || (*tmp) == 9) //获取第一个非空格和tab的字符
-			tmp++;
-		if(*tmp == '#')
+		if(IsNote(tmp))
 			continue;
 		if(*tmp == '<')
 		{
@@ -119,23 +187,42 @@ vector<string>::iterator CVirtualHost::FindGlobalDirective(string &directive,str
 	return it;
 }
 
-int CVirtualHost::FindNodeDirective()
+vector<string>::iterator CVirtualHost::FindNodeDirective(vector<string>::iterator, string &directive,vector<string &vt_apram)
 {
-	;
+	
 }
 
 vector<string>::iterator CVirtualHost::EraseItem(vector<string>::iterator it)
 {
 	return vt_conf.erase(it);
 }
-bool CVirtualHost::AddNode(string &node,vector<string>::iterator &it,string nodeParam[],int n)
+
+vector<string>::iterator CVirtualHost::AddNode(string &node,vector<string>::iterator &it,string nodeParam[],int n)
 {
-	;
+	string oneRecord = "    ";
+	oneRecord.append("<");
+	oneRecord.append(node);
+	for(int i = 0; i < n; i++)
+	{
+		oneRecord.append(nodeParam[i]);
+		oneRecord.append(" ");
+	}
+	oneRecord.append(">");
+	oneRecord.append(NEWLINE);
+	vt_conf.insert(it,oneRecord);
+	oneRecord = "    ";
+	oneRecord.append("</");
+	oneRecord.append(node);
+	oneRecord.append(">");
+	oneRecord.append(NEWLINE);
+	it = vt_conf.insert(it,oneRecord);
+	return it;
 }
 
 void CVirtualHost::AddDirective(string &directive,vector<string>::iterator &it,string nodeParam[],int n)
 {
-	string oneRecord = directive;
+	string oneRecord = "    ";
+	oneRecord.append(directive);
 	for(int i = 0; i < n; i++)
 	{
 		oneRecord.append(" ");
@@ -144,3 +231,43 @@ void CVirtualHost::AddDirective(string &directive,vector<string>::iterator &it,s
 	oneRecord.append(NEWLINE);
 	vt_conf.insert(it,oneRecord);
 }
+
+CVirtualHost* CVirtualHost::GetVirtualHost(string &fileName)
+{
+	pthread_mutex_lock(&mutex);
+	CVirtualHost *ret = NULL;
+	vector<CVirtualHost*>::iterator it = vt_virtualHost.begin();
+	for(; it != vt_virtualHost.end(); it++)
+	{
+		if(IsEqualString(fileName,(*it)->GetFileName()))
+		{
+			ret = *it;
+			break;
+		}
+	}
+	if(ret == NULL)
+	{
+		ret = new CVirtualHost(fileName);
+	}
+	if(ret != NULL && ret->IsUsing())
+		ret = NULL;
+	pthread_mutex_unlock(&mutex);
+	return ret;
+}
+
+void CVirtualHost::ReleaseVirtualHost(string &fileName)
+{
+	pthread_mutex_lock(&mutex);
+	vector<CVirtualHost*>::iterator it = vt_virtualHost.begin();
+	for(; it != vt_virtualHost.end(); it++)
+	{
+		if(IsEqualString(fileName,(*it)->GetFileName()))
+		{
+			(*it)->ResetUsingState();
+			break;
+		}
+	}
+	pthread_mutex_unlock(&mutex);
+}
+
+

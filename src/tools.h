@@ -7,7 +7,7 @@
 
 #include <vector>
 #include <string>
-#include "../src/defines.h"
+#include "defines.h"
 using namespace std;
 
 bool ReadFile(vector<string> *vt_conf,const char *fileName);
@@ -27,3 +27,5 @@ bool RestoreConf(string &userName);
 bool BakConf(string &userName);
 
 bool StrInVt(string &str,vector<string> &vt);
+
+bool UpLoadFile();

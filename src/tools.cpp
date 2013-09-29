@@ -91,8 +91,66 @@ string MakeConfPath(string &ftpName)
 	string path = dirPath + ftpName + ".conf";
 	return path;
 }
-
+//以"开头的字符串中遇到空格或tab不分割
 void Split(string source,vector<string> &result)
+{
+	const char* data = source.c_str();
+	const char* firstCharNotSpace = data;
+	bool  marks = false;
+	bool  preIsSpace = true;
+	while(*data != '\0')
+	{
+		if(*data == 34) //如果是引号
+		{
+			if(preIsSpace)
+			{
+				marks = true;
+				firstCharNotSpace = data;
+				preIsSpace = false;
+			}
+			data++;
+			
+			if(marks && (*data == 32 || * data == 9))
+			{
+				string tmp(firstCharNotSpace,data - firstCharNotSpace);
+				result.push_back(tmp);
+				marks = false;
+				firstCharNotSpace = data;
+			}
+			continue;
+		}
+		if(marks)
+		{
+			data++;
+			continue;
+		}
+		if((*data == 32 || *data == 9) && data == firstCharNotSpace) //空格
+		{
+			data++;
+			firstCharNotSpace = data;
+			preIsSpace = true;
+			continue;
+		}
+		else if((*data == 32 || *data == 9) && data != firstCharNotSpace)
+		{
+			string dest(firstCharNotSpace,data - firstCharNotSpace);
+			result.push_back(dest);
+			data++;
+			firstCharNotSpace = data;
+			preIsSpace = true;
+			continue;
+		}
+		else
+		{
+			preIsSpace = false;
+			data++;
+		}
+	}
+	string tmp(firstCharNotSpace,data - firstCharNotSpace);
+	result.push_back(tmp);
+}
+
+/*void Split(string source,vector<string> &result)
 {
 	const char* data = source.c_str();
 	const char* firstCharNotSpace = data;
@@ -119,7 +177,7 @@ void Split(string source,vector<string> &result)
 				firstCharNotSpace = data;
 		}
 	}
-}
+}*/
 
 bool IsEqualString(string first,string second)
 {
@@ -179,4 +237,69 @@ bool StrInVt(string &str,vector<string> &vt)
 			return true;
 	}
 	return false;
+}
+
+extern pthread_mutex_t mutex;
+extern vector<string> vt_fileName;
+bool ConfirmFileUsingState(string &fileName)
+{
+	pthread_mutex_lock(&mutex);
+	vector<string>::iterator it = vt_fileName.begin();
+	for(; it != vt_fileName.end(); it++)
+	{
+		if((*it).compare(fileName) == 0)
+		{
+			pthread_mutex_unlock(&mutex);
+			return true;
+		}
+	}
+	if(!fileName.empty())
+		vt_fileName.push_back(fileName);
+	pthread_mutex_unlock(&mutex);
+	return false;
+}
+
+void CancleFileUsingState(string &fileName)
+{
+	pthread_mutex_lock(&mutex);
+	vector<string>::iterator it = vt_fileName.begin();
+	for(; it != vt_fileName.end(); it++)
+	{
+		if((*it).compare(fileName) == 0)
+		{
+			vt_fileName.erase(it);
+			break;
+		}
+	}
+	pthread_mutex_unlock(&mutex);
+}
+
+bool UpLoadFile()
+{
+	/*CFTP ftpClient;
+	int err = ftpClient.ftp_connect("172.16.98.128");
+	if(err)
+	{
+		//连接ftp错误
+		syslog(LOG_ERR,"can't connect the ftp server!!!");
+		return false;
+	}
+	//err = ftpClient.ftp_login("w11","JHF\\$(\\$FJEJ*4835hg4");
+	err = ftpClient.ftp_login("xinll","meicheng");
+	if(err)
+	{
+		//登陆错误
+		syslog(LOG_ERR,"can't login the ftp server!!!");
+		return false;
+	}
+	err = ftpClient.ftp_upload("/backup_main/vhost-conf.tar.gz","/backup_main","vhost-conf.tar.gz");
+	
+	if(err)
+	{
+		//上传文件错误
+		syslog(LOG_ERR,"upload file failed!!!");
+		return false;
+	}
+	ftpClient.ftp_quit();*/
+	return true;
 }

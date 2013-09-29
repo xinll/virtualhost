@@ -6,45 +6,11 @@
  ************************************************************************/
 
 #include "hostOperation.h"
-#include "ftp.h"
-#include <string.h>
-#include <syslog.h>
 #include "tools.h"
-#include "common.h"
+#include "action.h"
+#include <syslog.h>
 
-bool ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo);
-bool ProcFilePermission(vector<pair<string,string> > &vt_param,string &errInfo);
 //bool AddHost(vector<pair<string,string> > &vt_param);
-
-bool UpLoadFile()
-{
-	/*CFTP ftpClient;
-	int err = ftpClient.ftp_connect("172.16.98.128");
-	if(err)
-	{
-		//连接ftp错误
-		syslog(LOG_ERR,"can't connect the ftp server!!!");
-		return false;
-	}
-	//err = ftpClient.ftp_login("w11","JHF\\$(\\$FJEJ*4835hg4");
-	err = ftpClient.ftp_login("xinll","meicheng");
-	if(err)
-	{
-		//登陆错误
-		syslog(LOG_ERR,"can't login the ftp server!!!");
-		return false;
-	}
-	err = ftpClient.ftp_upload("/backup_main/vhost-conf.tar.gz","/backup_main","vhost-conf.tar.gz");
-	
-	if(err)
-	{
-		//上传文件错误
-		syslog(LOG_ERR,"upload file failed!!!");
-		return false;
-	}
-	ftpClient.ftp_quit();*/
-	return true;
-}
 
 bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 {
@@ -71,13 +37,13 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 	else if(IsEqualString(value,ERRORDOCUMENT))
 	{
 		//修改错误页面
-		if(!ProcErrorDocument(vt_param,errInfo))
+		if(!CAction::ProcErrorDocument(vt_param,errInfo))
 			return false;
 	}
 	else if(IsEqualString(value,FILEPERMISSION))
 	{
 		//脚本权限
-		if(!ProcFilePermission(vt_param,errInfo))
+		if(!CAction::ProcFilePermission(vt_param,errInfo))
 			return false;
 	}
 
@@ -139,150 +105,6 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 	{
 		errInfo.append("重启apache失败");
 		errInfo.append(SPLIT);
-		return false;
-	}
-	return true;
-}
-
-bool ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
-{
-	if(vt_param.size() < 5)
-	{
-		errInfo.append("参数太少");
-		errInfo.append(SPLIT);
-		return false;
-	}
-	string errorNum = "";
-	string errorPage = "";
-	string userName = "";
-	vector<pair<string,string> >::iterator it = vt_param.begin();
-	it++;
-	it++;
-	for(;it != vt_param.end(); it++)
-	{
-		if((*it).first.compare(ERRORPAGE) == 0)
-		{
-			errorPage = (*it).second;
-			continue;
-		}
-		if((*it).first.compare(USERNAME) == 0)
-		{
-			userName = (*it).second;
-			continue;
-		}
-		if((*it).first.compare(ERRORNMSTR) == 0)
-		{
-			errorNum = (*it).second;
-			continue;
-		}
-	}
-	if(errorNum.empty() || errorPage.empty() || userName.empty())
-	{
-		errInfo.append("errorNum或errorPage或ftpName不合法");
-		errInfo.append(SPLIT);
-		return false;
-	}
-
-	if(!BakConf(userName))
-	{
-		errInfo.append("备份配置文件失败:");
-		errInfo.append(userName);
-		errInfo.append(SPLIT);
-		return false;
-	}
-	CVirtualHost virtualHost(userName);
-	if(!virtualHost.LoadFile())
-	{
-		return false;
-	}
-	string par[2] = {errorNum,errorPage};
-	string directive = ERRORHEAD;
-	vector<string>::iterator it_directive = virtualHost.FindGlobalDirective(directive,par,1);
-	if(it_directive != virtualHost.GetEndIterator())
-	{
-		it_directive = virtualHost.EraseItem(it_directive);
-	}
-	else
-	{
-		it_directive = virtualHost.GetIterator(1);
-	}
-	virtualHost.AddDirective(directive,it_directive,par,2);
-	if(!virtualHost.SaveFile())
-	{
-		return false;
-	}
-	return true;
-}
-
-bool ProcFilePermission(vector<pair<string,string> > &vt_param,string &errInfo)
-{	
-	if(vt_param.size() < 4)
-	{
-		errInfo.append("参数太少");
-		errInfo.append(SPLIT);
-		return false;
-	}
-	int permission = -1;
-	string directory = "";
-	string userName = "";
-	string file = "";
-
-	vector<pair<string,string> >::iterator it = vt_param.begin();
-	it++;
-	it++;
-	for(;it != vt_param.end(); it++)
-	{
-		if((*it).first.compare(USERNAME) == 0)
-		{
-			userName = (*it).second;
-			continue;
-		}
-		if((*it).first.compare(PERMISSION) == 0)
-		{
-			permission = atoi((*it).second.c_str());
-			continue;
-		}
-	}
-	file = "\\w*";
-	if(userName.empty() || file.empty() || permission < 0 || permission > 1)
-	{
-		errInfo.append("ftpName或permission不合法");
-		errInfo.append(SPLIT);
-		return false;
-	}
-	
-	if(!BakConf(userName))
-	{
-		errInfo.append("备份配置文件失败:");
-		errInfo.append(userName);
-		errInfo.append(SPLIT);
-		return false;
-	}
-	string path = MakeConfPath(userName);
-	vector<string> vt_conf;
-
-	if(!ReadFile(&vt_conf,path.c_str()))
-	{
-		//读取文件出错
-		errInfo.append("读取配置文件出错:");
-		errInfo.append(userName);
-		errInfo.append(SPLIT);
-		return false;
-	}
-	ChangePermission(directory,file,permission,vt_conf);
-	if(!WriteFile(&vt_conf,path.c_str()))
-	{
-		//写入文件出错
-		errInfo.append("写入配置文件出错:");
-		errInfo.append(userName);
-		errInfo.append(SPLIT);
-		//恢复配置
-		if(!RestoreConf(userName))
-		{
-			errInfo.append("恢复配置文件失败:");
-			errInfo.append(userName);
-			errInfo.append(SPLIT);
-		}
 		return false;
 	}
 	return true;
