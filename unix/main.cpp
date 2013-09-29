@@ -22,7 +22,6 @@
 using namespace std;
 
 //全局变量，以后考虑怎么修改，尽量不要使用全局
-vector<string> vt_fileName; //记录已经打开的文件名
 pthread_mutex_t mutex;  //互斥锁
 string dirPath;
 

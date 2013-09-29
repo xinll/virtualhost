@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "changePermission.h"
+
 bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
 {
 	if(vt_param.size() < 5)
@@ -137,47 +138,71 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 			continue;
 		}
 	}
-	file = "\\w*";
+	file = "\"\\w*\"";
 	if(userName.empty() || file.empty() || permission < 0 || permission > 1)
 	{
 		errInfo.append("ftpName或permission不合法");
 		errInfo.append(SPLIT);
 		return false;
 	}
-	
+
+
+	CVirtualHost* virtualHost = CVirtualHost::GetVirtualHost(userName);
+	if(virtualHost == NULL)
+	{
+		errInfo.append("文件正在使用中:");
+		errInfo.append(userName);
+		errInfo.append(SPLIT);
+		return false;
+	}
+
+	bool success = true;
 	if(!BakConf(userName))
 	{
 		errInfo.append("备份配置文件失败:");
 		errInfo.append(userName);
 		errInfo.append(SPLIT);
-		return false;
+		success = false;
 	}
-	string path = MakeConfPath(userName);
-	vector<string> vt_conf;
+	if(success && !virtualHost->LoadFile())
+	{
+		string err = virtualHost->GetLastErrorStr();
+		errInfo.append(err);
+		errInfo.append(SPLIT);
+		success = false;
+	}
 
-	if(!ReadFile(&vt_conf,path.c_str()))
+	if(success)
 	{
-		//读取文件出错
-		errInfo.append("读取配置文件出错:");
-		errInfo.append(userName);
-		errInfo.append(SPLIT);
-		return false;
-	}
-	ChangePermission(directory,file,permission,vt_conf);
-	if(!WriteFile(&vt_conf,path.c_str()))
-	{
-		//写入文件出错
-		errInfo.append("写入配置文件出错:");
-		errInfo.append(userName);
-		errInfo.append(SPLIT);
-		//恢复配置
-		if(!RestoreConf(userName))
+		string nodeName = FILENODE;
+		vector<string> vt_param;
+		vt_param.push_back("~");
+		vt_param.push_back(file);
+		vector<string>::iterator it_node = virtualHost->FindNode(nodeName,vt_param,virtualHost->GetIterator());
+		if(it_node != virtualHost->GetEndIterator())
 		{
-			errInfo.append("恢复配置文件失败:");
-			errInfo.append(userName);
-			errInfo.append(SPLIT);
+			
 		}
-		return false;
+		else
+		{
+			it_node = virtualHost->GetIterator(1);
+		}
+		it_node = virtualHost->AddNode(nodeName,it_node,vt_param);
+		
+		if(!virtualHost->SaveFile())
+		{
+			success = false;
+			string err = virtualHost->GetLastErrorStr();
+			errInfo.append(err);
+			errInfo.append(SPLIT);
+			if(RestoreConf(userName))
+			{
+				errInfo.append("恢复配置文件失败:");
+				errInfo.append(userName);
+				errInfo.append(SPLIT);
+			}
+		}
 	}
-	return true;
+	CVirtualHost::ReleaseVirtualHost(userName);
+	return success;
 }

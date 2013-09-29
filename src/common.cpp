@@ -9,6 +9,7 @@
 #include "tools.h"
 #include <stdio.h>
 #include <string.h>
+#include "defines.h"
 
 extern pthread_mutex_t mutex;
 vector<CVirtualHost*> CVirtualHost:: vt_virtualHost;
@@ -77,17 +78,17 @@ vector<string>::iterator CVirtualHost::FindNode(string &node,vector<string> &nod
 	bool exist = false;
 	for(; it != vt_conf.end(); it++)
 	{
-		char *tmp = (*it).c_str();
+		const char *tmp = (*it).c_str();
 		if(!IsNodeStart(tmp))
 			continue;
 		else
 		{
-			char *directiveStart = GetFirstNotSpaceChar(tmp) + 1;
+			const char *directiveStart = GetFirstNotSpaceChar(tmp) + 1;
 			Split(directiveStart,vt_tmp);
 			if(IsEqualString(node,vt_tmp[0]))
 			{
 				vector<string>::iterator it_param = vt_tmp.begin();
-				for(; it_param != vt_param.end(); it_param++)
+				for(; it_param != nodeParam.end(); it_param++)
 				{
 					if(!StrInVt((*it_param),vt_tmp))
 						break;
@@ -187,9 +188,40 @@ vector<string>::iterator CVirtualHost::FindGlobalDirective(string &directive,str
 	return it;
 }
 
-vector<string>::iterator CVirtualHost::FindNodeDirective(vector<string>::iterator, string &directive,vector<string &vt_apram)
+vector<string>::iterator CVirtualHost::FindNodeDirective(vector<string>::iterator it, string &directive,vector<string> &vt_param)
 {
-	
+	if(!IsNodeStart((*it).c_str()))
+	{
+		errorInfo = "请传入节点所在行";
+			return vt_conf.end();
+	}
+	it++;
+	bool exist = false;
+	vector<string> vt_tmp;
+	while(!IsNodeEnd((*it).c_str()) && !IsNote((*it).c_str()))
+	{
+		if(IsEqualString((*it).c_str(),directive))
+		{
+			vector<string>::iterator it_param = vt_param.begin();
+			for(; it_param != vt_param.end(); it++)
+			{
+				if(!StrInVt(*it,vt_tmp))
+				{
+					exist = false;
+					break;
+				}
+			}
+			if(it_param == vt_param.end())
+			{
+				exist = true;
+				break;
+			}
+		}
+		else
+			it++;
+		vt_tmp.clear();
+	}
+	return it;
 }
 
 vector<string>::iterator CVirtualHost::EraseItem(vector<string>::iterator it)
@@ -197,19 +229,20 @@ vector<string>::iterator CVirtualHost::EraseItem(vector<string>::iterator it)
 	return vt_conf.erase(it);
 }
 
-vector<string>::iterator CVirtualHost::AddNode(string &node,vector<string>::iterator &it,string nodeParam[],int n)
+vector<string>::iterator CVirtualHost::AddNode(string &node,vector<string>::iterator it,vector<string> &vt_nodeParam)
 {
 	string oneRecord = "    ";
 	oneRecord.append("<");
 	oneRecord.append(node);
-	for(int i = 0; i < n; i++)
+	for(int i = 0; i < vt_nodeParam.size(); i++)
 	{
-		oneRecord.append(nodeParam[i]);
 		oneRecord.append(" ");
+		oneRecord.append(vt_nodeParam[i]);
 	}
 	oneRecord.append(">");
 	oneRecord.append(NEWLINE);
 	vt_conf.insert(it,oneRecord);
+	it++;
 	oneRecord = "    ";
 	oneRecord.append("</");
 	oneRecord.append(node);

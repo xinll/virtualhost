@@ -90,6 +90,7 @@ string MakeConfPath(string &ftpName)
 {
 	string path = dirPath + ftpName + ".conf";
 	return path;
+
 }
 //以"开头的字符串中遇到空格或tab不分割
 void Split(string source,vector<string> &result)
@@ -181,7 +182,18 @@ void Split(string source,vector<string> &result)
 
 bool IsEqualString(string first,string second)
 {
-	return strcasecmp(first.c_str(),second.c_str()) == 0;
+	const char *f = first.c_str();
+	const char *s = second.c_str();
+	if(*f == '\"')
+	{
+		f = first.c_str() + 1;
+	}
+	if(*s == '\"')
+	{
+		s = second.c_str() + 1;
+	}
+	int n = strlen(f) > strlen(s) ? strlen(s) : strlen(f);
+	return strncasecmp(first.c_str(),second.c_str(),n) == 0;
 }
 
 
@@ -239,7 +251,7 @@ bool StrInVt(string &str,vector<string> &vt)
 	return false;
 }
 
-extern pthread_mutex_t mutex;
+/*extern pthread_mutex_t mutex;
 extern vector<string> vt_fileName;
 bool ConfirmFileUsingState(string &fileName)
 {
@@ -272,7 +284,7 @@ void CancleFileUsingState(string &fileName)
 		}
 	}
 	pthread_mutex_unlock(&mutex);
-}
+}*/
 
 bool UpLoadFile()
 {
