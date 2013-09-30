@@ -78,6 +78,7 @@ vector<string>::iterator CVirtualHost::FindNode(string &node,vector<string> &nod
 	bool exist = false;
 	for(; it != vt_conf.end(); it++)
 	{
+		vt_tmp.clear();
 		const char *tmp = (*it).c_str();
 		if(!IsNodeStart(tmp))
 			continue;
@@ -87,7 +88,7 @@ vector<string>::iterator CVirtualHost::FindNode(string &node,vector<string> &nod
 			Split(directiveStart,vt_tmp);
 			if(IsEqualString(node,vt_tmp[0]))
 			{
-				vector<string>::iterator it_param = vt_tmp.begin();
+				vector<string>::iterator it_param = nodeParam.begin();
 				for(; it_param != nodeParam.end(); it_param++)
 				{
 					if(!StrInVt((*it_param),vt_tmp))
@@ -96,6 +97,8 @@ vector<string>::iterator CVirtualHost::FindNode(string &node,vector<string> &nod
 				if(it_param == vt_tmp.end() && nodeParam.size() != 0)
 					exist = true;
 				if(nodeParam.size() == 0 && vt_tmp.size() == 0)
+					exist = true;
+				if(it_param == nodeParam.end())
 					exist = true;
 			}
 			else
@@ -198,9 +201,15 @@ vector<string>::iterator CVirtualHost::FindNodeDirective(vector<string>::iterato
 	it++;
 	bool exist = false;
 	vector<string> vt_tmp;
-	while(!IsNodeEnd((*it).c_str()) && !IsNote((*it).c_str()))
+	while(!IsNodeEnd((*it).c_str()))
 	{
-		if(IsEqualString((*it).c_str(),directive))
+		if(IsNote((*it).c_str()))
+		{
+			it++;
+			continue;
+		}
+		Split((*it),vt_tmp);
+		if(IsEqualString(vt_tmp[0],directive))
 		{
 			vector<string>::iterator it_param = vt_param.begin();
 			for(; it_param != vt_param.end(); it++)
@@ -252,14 +261,14 @@ vector<string>::iterator CVirtualHost::AddNode(string &node,vector<string>::iter
 	return it;
 }
 
-void CVirtualHost::AddDirective(string &directive,vector<string>::iterator &it,string nodeParam[],int n)
+void CVirtualHost::AddDirective(string &directive,vector<string>::iterator it,vector<string> &vt_param,int n)
 {
-	string oneRecord = "    ";
+	string oneRecord(n,' ');
 	oneRecord.append(directive);
-	for(int i = 0; i < n; i++)
+	for(int i = 0; i < vt_param.size(); i++)
 	{
 		oneRecord.append(" ");
-		oneRecord.append(nodeParam[i]);
+		oneRecord.append(vt_param[i]);
 	}
 	oneRecord.append(NEWLINE);
 	vt_conf.insert(it,oneRecord);

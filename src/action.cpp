@@ -80,6 +80,8 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 	if(success)
 	{
 		string par[2] = {errorNum,errorPage};
+		vector<string> vt_tmp;
+		vt_tmp.push_back(errorNum);
 		string directive = ERRORHEAD;
 		vector<string>::iterator it_directive = virtualHost->FindGlobalDirective(directive,par,1,virtualHost->GetIterator());
 		if(it_directive != virtualHost->GetEndIterator())
@@ -90,7 +92,8 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 		{
 			it_directive = virtualHost->GetIterator(1);
 		}
-		virtualHost->AddDirective(directive,it_directive,par,2);
+		vt_tmp.push_back(errorPage);
+		virtualHost->AddDirective(directive,it_directive,vt_tmp,4);
 		if(!virtualHost->SaveFile())
 		{
 			success = false;
@@ -174,20 +177,69 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 
 	if(success)
 	{
+		string directive;
 		string nodeName = FILENODE;
-		vector<string> vt_param;
-		vt_param.push_back("~");
-		vt_param.push_back(file);
-		vector<string>::iterator it_node = virtualHost->FindNode(nodeName,vt_param,virtualHost->GetIterator());
+		vector<string> vt_tmpParam;
+		vt_tmpParam.push_back("~");
+		vt_tmpParam.push_back(file);
+		vector<string>::iterator it_node = virtualHost->FindNode(nodeName,vt_tmpParam,virtualHost->GetIterator());
+		vt_tmpParam.clear();
 		if(it_node != virtualHost->GetEndIterator())
 		{
-			
+			vector<string>::iterator it_tmp;
+			vector<string> vt_tmpParam;
+			directive = ORDER;
+			it_tmp = virtualHost->FindNodeDirective(it_node,directive,vt_tmpParam);
+			if(it_tmp != virtualHost->GetEndIterator() && !virtualHost->IsNodeEnd((*it_tmp).c_str()))
+				virtualHost->EraseItem(it_tmp);
+			directive = DENY;
+			it_tmp = virtualHost->FindNodeDirective(it_node,directive,vt_tmpParam);
+			if(it_tmp != virtualHost->GetEndIterator() && !virtualHost->IsNodeEnd((*it_tmp).c_str()))
+				virtualHost->EraseItem(it_tmp);
+			directive = ALLOW;
+			it_tmp = virtualHost->FindNodeDirective(it_node,directive,vt_tmpParam);
+			if(it_tmp != virtualHost->GetEndIterator() && !virtualHost->IsNodeEnd((*it_tmp).c_str()))
+				virtualHost->EraseItem(it_tmp);
+			it_node++;
 		}
 		else
 		{
 			it_node = virtualHost->GetIterator(1);
+			vt_tmpParam.push_back("~");
+			vt_tmpParam.push_back(file);
+			it_node = virtualHost->AddNode(nodeName,it_node,vt_tmpParam);
 		}
-		it_node = virtualHost->AddNode(nodeName,it_node,vt_param);
+		
+		vt_tmpParam.clear();
+		switch(permission)
+		{
+			case PERMISSION_ALLOW:		
+			{
+				vt_tmpParam.push_back("deny,allow");
+				directive = ORDER;
+				virtualHost->AddDirective(directive,it_node,vt_tmpParam,8);
+				it_node++;
+				vt_tmpParam.clear();
+				vt_tmpParam.push_back("from");
+				vt_tmpParam.push_back("all");
+				directive = ALLOW;
+				virtualHost->AddDirective(directive,it_node,vt_tmpParam,8);
+				break;
+			}
+			case PERMISSION_DENY:
+			{
+				vt_tmpParam.push_back("allow,deny");
+				directive = ORDER;
+				virtualHost->AddDirective(directive,it_node,vt_tmpParam,8);
+				it_node++;
+				vt_tmpParam.clear();
+				vt_tmpParam.push_back("from");
+				vt_tmpParam.push_back("all");
+				directive = DENY;
+				virtualHost->AddDirective(directive,it_node,vt_tmpParam,8);
+				break;
+			}
+		}
 		
 		if(!virtualHost->SaveFile())
 		{

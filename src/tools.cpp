@@ -147,7 +147,7 @@ void Split(string source,vector<string> &result)
 			data++;
 		}
 	}
-	string tmp(firstCharNotSpace,data - firstCharNotSpace);
+	string tmp(firstCharNotSpace,data - firstCharNotSpace); //换行符
 	result.push_back(tmp);
 }
 

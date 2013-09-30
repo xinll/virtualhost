@@ -37,7 +37,10 @@ typedef	int					MC_SOCKET;
 #define ERROR403            403
 #define ERROR500            500
 #define ERRORHEAD           "ErrorDocument"
-#define FILENODE            "files"
+#define FILENODE            "Files"
+#define ALLOW               "allow"
+#define DENY                "deny"
+#define ORDER               "Order"
 
 //默认socket接收缓冲区大小
 #define BUF_LENGTH          10240
