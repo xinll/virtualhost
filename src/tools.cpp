@@ -251,41 +251,6 @@ bool StrInVt(string &str,vector<string> &vt)
 	return false;
 }
 
-/*extern pthread_mutex_t mutex;
-extern vector<string> vt_fileName;
-bool ConfirmFileUsingState(string &fileName)
-{
-	pthread_mutex_lock(&mutex);
-	vector<string>::iterator it = vt_fileName.begin();
-	for(; it != vt_fileName.end(); it++)
-	{
-		if((*it).compare(fileName) == 0)
-		{
-			pthread_mutex_unlock(&mutex);
-			return true;
-		}
-	}
-	if(!fileName.empty())
-		vt_fileName.push_back(fileName);
-	pthread_mutex_unlock(&mutex);
-	return false;
-}
-
-void CancleFileUsingState(string &fileName)
-{
-	pthread_mutex_lock(&mutex);
-	vector<string>::iterator it = vt_fileName.begin();
-	for(; it != vt_fileName.end(); it++)
-	{
-		if((*it).compare(fileName) == 0)
-		{
-			vt_fileName.erase(it);
-			break;
-		}
-	}
-	pthread_mutex_unlock(&mutex);
-}*/
-
 bool UpLoadFile()
 {
 	/*CFTP ftpClient;

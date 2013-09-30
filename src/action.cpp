@@ -125,6 +125,7 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 	string userName = "";
 	string file = "";
 
+	//解析参数，分别赋值
 	vector<pair<string,string> >::iterator it = vt_param.begin();
 	it++;
 	it++;
@@ -140,7 +141,13 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 			permission = atoi((*it).second.c_str());
 			continue;
 		}
+		if((*it).first.compare(DIRECTORY) == 0)
+		{
+			directory = (*it).second;
+			continue;
+		}
 	}
+	//匹配目录下所有文件
 	file = "\"\\w*\"";
 	if(userName.empty() || file.empty() || permission < 0 || permission > 1)
 	{
@@ -149,7 +156,7 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 		return false;
 	}
 
-
+	//获取对应的虚拟主机操作对象
 	CVirtualHost* virtualHost = CVirtualHost::GetVirtualHost(userName);
 	if(virtualHost == NULL)
 	{
@@ -189,6 +196,7 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 			vector<string>::iterator it_tmp;
 			vector<string> vt_tmpParam;
 			directive = ORDER;
+			//查找并删除Order,allow deny指令
 			it_tmp = virtualHost->FindNodeDirective(it_node,directive,vt_tmpParam);
 			if(it_tmp != virtualHost->GetEndIterator() && !virtualHost->IsNodeEnd((*it_tmp).c_str()))
 				virtualHost->EraseItem(it_tmp);
