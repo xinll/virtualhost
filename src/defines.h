@@ -61,6 +61,7 @@ typedef	int					MC_SOCKET;
 #define RESTORECONF         "restoreConf"
 #define MYSQLBACK           "backupMySQL"
 #define MYSQLRESTORE        "restoreMySQL"
+#define DELETEDIR           "rmDir"
 
 //修改错误页面参数
 #define ERRORNMSTR          "errorNum"

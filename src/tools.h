@@ -28,4 +28,6 @@ bool BakConf(string &userName);
 
 bool StrInVt(string &str,vector<string> &vt);
 
-bool UpLoadFile();
+bool UpLoadFile(const char* ftpServer,const char* ftpUser,const char* ftpPwd,const char* file,const char* dir);
+
+void RmDir(const char* path);

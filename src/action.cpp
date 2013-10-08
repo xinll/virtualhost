@@ -11,13 +11,13 @@
 #include "tools.h"
 #include <string.h>
 #include <stdlib.h>
-#include "changePermission.h"
+#include "config.h"
 
 bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
 {
 	if(vt_param.size() < 5)
 	{
-		errInfo.append("参数太少");
+		errInfo.append("param error");
 		errInfo.append(SPLIT);
 		return false;
 	}
@@ -45,17 +45,21 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 			continue;
 		}
 	}
-	if(errorNum.empty() || errorPage.empty() || userName.empty())
+	if(errorNum.empty() || userName.empty())
 	{
-		errInfo.append("errorNum或errorPage或ftpName不合法");
+		errInfo.append("errorNum or ftpName not valid");
 		errInfo.append(SPLIT);
 		return false;
 	}
 
+	if(strcmp(errorNum.c_str(),"404") == 0 && errorPage.empty())
+	{
+		errorPage = "/error/404.html";
+	}
 	CVirtualHost* virtualHost = CVirtualHost::GetVirtualHost(userName);
 	if(virtualHost == NULL)
 	{
-		errInfo.append("文件正在使用中:");
+		errInfo.append("the file is using:");
 		errInfo.append(userName);
 		errInfo.append(SPLIT);
 		return false;
@@ -64,7 +68,7 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 	bool success = true;
 	if(!BakConf(userName))
 	{
-		errInfo.append("备份配置文件失败:");
+		errInfo.append("bak the config file failed:");
 		errInfo.append(userName);
 		errInfo.append(SPLIT);
 		success = false;
@@ -102,7 +106,7 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 			errInfo.append(SPLIT);
 			if(RestoreConf(userName))
 			{
-				errInfo.append("恢复配置文件失败:");
+				errInfo.append("restore the config file failed:");
 				errInfo.append(userName);
 				errInfo.append(SPLIT);
 			}
@@ -151,7 +155,7 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 	file = "\"\\w*\"";
 	if(userName.empty() || file.empty() || permission < 0 || permission > 1)
 	{
-		errInfo.append("ftpName或permission不合法");
+		errInfo.append("ftpName or permission not valid");
 		errInfo.append(SPLIT);
 		return false;
 	}
@@ -160,7 +164,7 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 	CVirtualHost* virtualHost = CVirtualHost::GetVirtualHost(userName);
 	if(virtualHost == NULL)
 	{
-		errInfo.append("文件正在使用中:");
+		errInfo.append("the file is using:");
 		errInfo.append(userName);
 		errInfo.append(SPLIT);
 		return false;
@@ -169,7 +173,7 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 	bool success = true;
 	if(!BakConf(userName))
 	{
-		errInfo.append("备份配置文件失败:");
+		errInfo.append("bak the config file failed:");
 		errInfo.append(userName);
 		errInfo.append(SPLIT);
 		success = false;
@@ -257,7 +261,7 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 			errInfo.append(SPLIT);
 			if(RestoreConf(userName))
 			{
-				errInfo.append("恢复配置文件失败:");
+				errInfo.append("restore the config file failed:");
 				errInfo.append(userName);
 				errInfo.append(SPLIT);
 			}
@@ -266,3 +270,28 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 	CVirtualHost::ReleaseVirtualHost(userName);
 	return success;
 }
+
+
+void CAction::DeleteRootDirectory(vector<pair<string,string> >&vt_param,string &errInfo)
+{
+	if(vt_param.size() < 3)
+	{
+		errInfo.append("参数太少");
+		errInfo.append(SPLIT);
+		return;
+	}
+
+	string userName = vt_param[2].second;
+	Config config;
+	config.LoadConfigFile();
+	string path = config.GetValue("USER_ROOT");
+	if(path.empty())
+	{
+		path = "/var/www/virtual/";
+	}
+	path.append(userName);
+	path.append("/home/wwwroot");
+	RmDir(path.c_str());
+}
+
+

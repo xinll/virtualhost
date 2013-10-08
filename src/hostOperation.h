@@ -8,11 +8,8 @@
 #include <iostream>
 #include <string>
 #include "tools.h"
-#include "../src/serverError.h"
-#include "../src/changePermission.h"
 #include "procMySQL.h"
 
 using namespace std;
 
 bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo);
-bool BakConf(string &userName);

@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "tools.h"
+#include <mysql/mysql.h>
 
 bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 {
@@ -288,3 +289,57 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 		return false;
 	}
 }
+
+//读取数据库大小
+long long GetDataBaseSize(string host,string user,string pwd,string db,unsigned int port = 3306)
+{
+	MYSQL mysql;
+	
+	mysql_init(&mysql);
+	
+	if(!mysql_real_connect(&mysql,host.c_str(),user.c_str(),pwd.c_str(),db.c_str(),port,NULL,0))
+	{
+		;//连接数据库失败
+	}
+
+	string query = "SHOW TABLE STATUS";
+	if(!mysql_query(&mysql,query.c_str()))
+	{
+		mysql_close(&mysql);
+		return 0;
+	}
+	MYSQL_RES *result = mysql_store_result(&mysql);
+	if(result == NULL)
+	{
+		mysql_close(&mysql);
+		return 0;
+	}
+
+	long long size = 0;
+	MYSQL_ROW row;
+	MYSQL_FIELD *fields = mysql_fetch_fields(result);
+	
+	while((row = mysql_fetch_row(result)))
+	{
+		size += strtoll(row[6],NULL,0);
+		size += strtoll(row[8],NULL,0);
+	}
+	mysql_free_result(result);
+	mysql_close(&mysql);
+	return size;
+}
+
+/*extern pthread_mutex_t mutex;
+void LimitMySQLSize()
+{
+	pthread_mutex_lock(&mutex);
+	vector<string> vt_conf;
+	ReadFile(&vt_conf,);
+	pthread_mutex_unlock(&mutex);
+	vector<string>::iterator it = vt_conf.begin();
+	vector<string>
+	for(; it != vt_conf.end(); it++)
+	{
+		
+	}
+}*/

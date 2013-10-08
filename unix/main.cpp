@@ -30,7 +30,7 @@ void* ProcSocket(void *arg);
 int main(int argc,char **argv)
 {
 	openlog("apache_conf",LOG_PID,0);
-	/*pid_t pid = fork();
+/*	pid_t pid = fork();
 	if(pid < 0)
 	{
 		exit(EXIT_FAILURE);
@@ -54,7 +54,7 @@ int main(int argc,char **argv)
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
-	*/
+*/	
 	//初始化python环境
 /*	if(!InitPythonEnv())
 	{
@@ -160,7 +160,7 @@ void* ProcSocket(void *arg)
 		if(end == NULL || strcmp(buf + strlen(buf) -3,PARAMEND) != 0)
 		{
 			//continue;
-			errInfo.append("参数错误:");
+			errInfo.append("the param error:");
 			errInfo.append(buf);
 			errInfo.append(PARAMEND);
 			syslog(LOG_ERR,errInfo.c_str());
@@ -179,7 +179,7 @@ void* ProcSocket(void *arg)
 				//参数解析出错
 				string err(tmp,pStr-tmp);
 				errInfo.append(err);
-				errInfo.append("解析错误");
+				errInfo.append("failed to reslove the param:");
 				errInfo.append(PARAMEND);
 				syslog(LOG_ERR,"the param is not right from %s",clientAddr);
 				continue;
@@ -194,8 +194,9 @@ void* ProcSocket(void *arg)
 				{
 					if(!ProcHost(vt_param,errInfo))
 					{
-						string strParam(thisParam,pStr + strlen(PARAMEND) - thisParam);
-						errInfo.append(strParam);
+					/*	string strParam(thisParam,pStr + strlen(PARAMEND) - thisParam);
+						errInfo.append(strParam);*/
+						errInfo.append(PARAMEND);
 					}
 				}
 			}

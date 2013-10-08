@@ -16,7 +16,6 @@ class CVirtualHost
 {
 private:
 	vector<string> vt_conf;
-//	vector<string>::iterator it;
 	time_t         lastModified;
 	string         ftpName;
 	string         errorInfo;

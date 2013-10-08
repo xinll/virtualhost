@@ -14,4 +14,6 @@ public:
 	static bool ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo);
 
 	static bool ProcFilePermission(vector<pair<string,string> > &vt_param,string &errInfo);
+
+	static void DeleteRootDirectory(vector<pair<string,string> >&vt_param,string &errInfo);
 };

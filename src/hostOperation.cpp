@@ -9,6 +9,7 @@
 #include "tools.h"
 #include "action.h"
 #include <syslog.h>
+#include <stdlib.h>
 
 //bool AddHost(vector<pair<string,string> > &vt_param);
 
@@ -84,17 +85,21 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 	{
 		return MySQLRestore(vt_param,errInfo);
 	}
+	else if(IsEqualString(value,DELETEDIR))
+	{
+		CAction::DeleteRootDirectory(vt_param,errInfo);
+	}
 	else
 	{
 		errInfo.append("未知的操作类型:");
 		errInfo.append(value);
 		errInfo.append(SPLIT);
 	}
-	if(!UpLoadFile())
+/*	if(!UpLoadFile())
 	{
 		//上传文件错误
 		
-	}
+	}*/
 	int ret = system("/sbin/service httpd restart >> /dev/null");
 	
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)

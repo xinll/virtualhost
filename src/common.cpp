@@ -34,7 +34,7 @@ bool CVirtualHost::LoadFile()
 	if(!ReadFile(&vt_conf,path.c_str()))
 	{
 		char buf[256];
-		sprintf(buf,"读取配置文件%s.conf失败",ftpName.c_str());
+		sprintf(buf,"read confile file %s.conf failed",ftpName.c_str());
 		errorInfo = buf;
 		vt_conf.clear();
 		return false;
@@ -48,7 +48,7 @@ bool CVirtualHost::SaveFile()
 	if(!WriteFile(&vt_conf,path.c_str()))
 	{
 		char buf[256];
-		sprintf(buf,"写入配置文件%s.conf失败",ftpName.c_str());
+		sprintf(buf,"write config file %s.conf failed",ftpName.c_str());
 		errorInfo = buf;
 		return false;
 	}
@@ -195,8 +195,8 @@ vector<string>::iterator CVirtualHost::FindNodeDirective(vector<string>::iterato
 {
 	if(!IsNodeStart((*it).c_str()))
 	{
-		errorInfo = "请传入节点所在行";
-			return vt_conf.end();
+		//errorInfo = "请传入节点所在行";
+		return vt_conf.end();
 	}
 	it++;
 	bool exist = false;

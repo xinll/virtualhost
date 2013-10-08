@@ -8,10 +8,7 @@ OBJS=${TARGET_DIR}/main.o\
 	 ${TARGET_DIR}/action.o
 
 .PHONY:all
-all:${TARGET_DIR}/libchangePermission.so ${TARGET_DIR}/libsock.so ${TARGET_DIR}/libftp.so ${TARGET_DIR}/libtools.so ${TARGET_DIR}/libhostOperation.so ${TARGET_DIR}/libconfig.so ${TARGET} cleanObj
-
-${TARGET_DIR}/libchangePermission.so:${SRC_DIR}/changePermission.cpp
-	g++ -g -w -D__unix -fPIC -shared $? -o $@
+all:${TARGET_DIR}/libsock.so ${TARGET_DIR}/libftp.so ${TARGET_DIR}/libtools.so ${TARGET_DIR}/libhostOperation.so ${TARGET_DIR}/libconfig.so ${TARGET} cleanObj
 
 ${TARGET_DIR}/libsock.so:${SRC_DIR}/sock.cpp
 	g++ -g -w -D__unix -fPIC -shared $? -o $@
@@ -29,7 +26,7 @@ ${TARGET_DIR}/libconfig.so:${SRC_DIR}/config.cpp
 	g++ -g -w -D__unix -fPIC -shared $? -o $@
 
 ${TARGET}:${OBJS}
-	g++ -g $? -lchangePermission -lhostOperation -lsock -ltools -lftp -lconfig -lpthread -L./tmp/ -o $@
+	g++ -g $? -lhostOperation -lsock -ltools -lftp -lconfig -lpthread -lmysqlclient -L./tmp/ -L/usr/lib/mysql/ -o $@
 
 ${TARGET_DIR}/main.o:main.cpp
 	g++ -g -c $? -o $@
@@ -62,7 +59,7 @@ install:
 .PHONY:uninstall
 
 uninstall:
-	rm /usr/lib/libsock.so /usr/lib/libserverError.so /usr/lib/libchangePermission.so /usr/lib/libftp.so /usr/lib/libtools.so /usr/lib/libconfig.so /usr/lib/libhostOperation.so
+	rm /usr/lib/libsock.so /usr/lib/libftp.so /usr/lib/libtools.so /usr/lib/libconfig.so /usr/lib/libhostOperation.so
 	ldconfig
 	rm /usr/local/sbin/apache_conf
 	rm /etc/apache_conf.conf
