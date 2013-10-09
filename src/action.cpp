@@ -17,8 +17,7 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 {
 	if(vt_param.size() < 5)
 	{
-		errInfo.append("param error");
-		errInfo.append(SPLIT);
+		errInfo.append("too less param.");
 		return false;
 	}
 	string errorNum = "";
@@ -47,8 +46,7 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 	}
 	if(errorNum.empty() || userName.empty())
 	{
-		errInfo.append("errorNum or ftpName not valid");
-		errInfo.append(SPLIT);
+		errInfo.append("errorNum or ftpName not valid.");
 		return false;
 	}
 
@@ -61,7 +59,6 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 	{
 		errInfo.append("the file is using:");
 		errInfo.append(userName);
-		errInfo.append(SPLIT);
 		return false;
 	}
 
@@ -70,7 +67,6 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 	{
 		errInfo.append("bak the config file failed:");
 		errInfo.append(userName);
-		errInfo.append(SPLIT);
 		success = false;
 	}
 
@@ -78,7 +74,6 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 	{
 		string err = virtualHost->GetLastErrorStr();
 		errInfo.append(err);
-		errInfo.append(SPLIT);
 		success = false;
 	}
 	if(success)
@@ -103,12 +98,10 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 			success = false;
 			string err = virtualHost->GetLastErrorStr();
 			errInfo.append(err);
-			errInfo.append(SPLIT);
 			if(RestoreConf(userName))
 			{
 				errInfo.append("restore the config file failed:");
 				errInfo.append(userName);
-				errInfo.append(SPLIT);
 			}
 		}
 	}
@@ -120,8 +113,7 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 {	
 	if(vt_param.size() < 4)
 	{
-		errInfo.append("参数太少");
-		errInfo.append(SPLIT);
+		errInfo.append("too less param.");
 		return false;
 	}
 	int permission = -1;
@@ -156,7 +148,6 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 	if(userName.empty() || file.empty() || permission < 0 || permission > 1)
 	{
 		errInfo.append("ftpName or permission not valid");
-		errInfo.append(SPLIT);
 		return false;
 	}
 
@@ -166,7 +157,6 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 	{
 		errInfo.append("the file is using:");
 		errInfo.append(userName);
-		errInfo.append(SPLIT);
 		return false;
 	}
 
@@ -175,14 +165,12 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 	{
 		errInfo.append("bak the config file failed:");
 		errInfo.append(userName);
-		errInfo.append(SPLIT);
 		success = false;
 	}
 	if(success && !virtualHost->LoadFile())
 	{
 		string err = virtualHost->GetLastErrorStr();
 		errInfo.append(err);
-		errInfo.append(SPLIT);
 		success = false;
 	}
 
@@ -258,12 +246,10 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 			success = false;
 			string err = virtualHost->GetLastErrorStr();
 			errInfo.append(err);
-			errInfo.append(SPLIT);
 			if(RestoreConf(userName))
 			{
 				errInfo.append("restore the config file failed:");
 				errInfo.append(userName);
-				errInfo.append(SPLIT);
 			}
 		}
 	}
@@ -276,8 +262,7 @@ void CAction::DeleteRootDirectory(vector<pair<string,string> >&vt_param,string &
 {
 	if(vt_param.size() < 3)
 	{
-		errInfo.append("参数太少");
-		errInfo.append(SPLIT);
+		errInfo.append("too less param.");
 		return;
 	}
 

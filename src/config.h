@@ -11,7 +11,7 @@
 class Config
 {
 public:
-	bool LoadConfigFile(string file = "/etc/apache_conf.conf");
+	bool LoadConfigFile(string file = "/usr/local/apache_conf/apache_conf.conf");
 	string GetValue(string key);
 private:
 	vector<pair<string,string> > vt_configInfo;

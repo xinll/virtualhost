@@ -99,3 +99,11 @@ typedef	int					MC_SOCKET;
 
 #define SUCCESS             "10000:"
 #define PARAMEND            ".\r\n"
+
+
+#define DEBUG               1
+#define INFO                2
+#define NOTICE              3
+#define WARN                4
+#define ERROR               5
+#define FATAL               6

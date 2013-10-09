@@ -305,7 +305,8 @@ void CVirtualHost::ReleaseVirtualHost(string &fileName)
 	{
 		if(IsEqualString(fileName,(*it)->GetFileName()))
 		{
-			(*it)->ResetUsingState();
+			//(*it)->ResetUsingState();
+			vt_virtualHost.erase(it);
 			break;
 		}
 	}

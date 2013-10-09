@@ -13,13 +13,20 @@
 #include <stdlib.h>
 #include "tools.h"
 #include <mysql/mysql.h>
+#include "log.h"
+#include "zlog.h"
+
+static zlog_category_t *c = NULL;
 
 bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 {
+	if(c == NULL)
+	{
+		c = GetCategory("backupMysql");
+	}
 	if(vt_param.size() < 5)
 	{
-		errInfo.append("参数太少");
-		errInfo.append(SPLIT);
+		errInfo.append("too less param.");
 		return false;
 	}
 	string ftpUserName,ftpPw,mySQLUserName,mySQLPw,mySQLDataBase;
@@ -90,31 +97,24 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 	if(ftpUserName.empty() || mySQLUserName.empty() || mySQLDataBase.empty())
 	{
 		//参数错误
-		errInfo.append("ftpUserName或mySQLUserName或mySQLDataBase名不合法");
-		errInfo.append(SPLIT);
+		errInfo.append("ftpUserName or mySQLUserName or mySQLDataBase not valid.");
 		return false;
 	}
 
-	//size_t found = bakFileName.rfind("/");
 	string dir = "/tmp";
-	/*if(found != string::npos)
-	{
-		dir = bakFileName.substr(0,found);
-		bakFileName = bakFileName.substr(found + 1,bakFileName.size() - found - 1);
-	}*/
 	chdir(dir.c_str());
 	char cmdBuf[1024];
 	sprintf(cmdBuf,"mysqldump -u%s -p%s -h%s %s --add-drop-database --database --lock-all-tables --disable-keys > %s",mySQLUserName.c_str(),mySQLPw.c_str(),mySQLServer.c_str(),mySQLDataBase.c_str(),bakFileName.c_str());
     int ret = system(cmdBuf);
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
 	{
-		syslog(LOG_INFO,"备份MySQL脚本成功%s",mySQLDataBase.c_str());
+		char tmp[256];
+		sprintf(tmp,"backup MySQL %s success",mySQLDataBase.c_str());
+		WriteLog(c,INFO,tmp);
 	}
 	else
 	{
-		errInfo.append("备份MySQL脚本失败");
-		errInfo.append(SPLIT);
-		syslog(LOG_ERR,"备份MySQL脚本失败%s",mySQLDataBase.c_str());
+		errInfo.append("backup MySQL %s failed",mySQLDataBase.c_str());
 		return false;
 	}
 	CFTP ftpClient;
@@ -122,9 +122,7 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 	if(err)
 	{
 		//连接ftp错误
-		syslog(LOG_ERR,"can't connect the ftp server!!!");
-		errInfo.append("连接ftp服务器失败");
-		errInfo.append(SPLIT);
+		errInfo.append("can't connect the ftp server");
 		chdir("/");
 		return false;
 	}
@@ -132,9 +130,7 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 	if(err)
 	{
 		//登陆错误
-		syslog(LOG_ERR,"can't login the ftp server!!!");
-		errInfo.append("登陆ftp服务器失败");
-		errInfo.append(SPLIT);
+		errInfo.append("can't login the ftp server");
 		chdir("/");
 		return false;
 	}
@@ -144,9 +140,7 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 	if(err)
 	{
 		//上传文件错
-		syslog(LOG_ERR,"upload file failed!!!");
-		errInfo.append("上传文件到ftp服务器失败");
-		errInfo.append(SPLIT);
+		errInfo.append("upload the file failed");
 		return false;
 	}
 	ftpClient.ftp_quit();
@@ -219,8 +213,7 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 	if(ftpUserName.empty() || mySQLUserName.empty() || bakFileName.empty())
 	{
 		//参数错误
-		errInfo.append("参数不合法");
-		errInfo.append(SPLIT);
+		errInfo.append("the param is not valid.");
 		return false;
 	}
 	
@@ -229,32 +222,21 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 	if(err)
 	{
 		//连接ftp错误
-		syslog(LOG_ERR,"can't connect the ftp server!!!");
-		errInfo.append("连接ftp服务器失败");
-		errInfo.append("SPLIT");
+		errInfo.append("can't connect the ftp server.");
 		return false;
 	}
 	err = ftpClient.ftp_login(ftpUserName.c_str(),ftpPw.c_str());
 	if(err)
 	{
 		//登陆错误
-		errInfo.append("登陆ftp服务器失败");
-		errInfo.append(SPLIT);
-		syslog(LOG_ERR,"can't login the ftp server!!!");
+		errInfo.append("can't login the ftp server.");
 		return false;
 	}
-//	size_t found = bakFileName.rfind("/");
 	string dir = "/tmp/";
-/*	if(found != string::npos)
-	{
-		dir = bakFileName.substr(0,found);
-		bakFileName = bakFileName.substr(found + 1,bakFileName.size() - found - 1);
-	}*/
 	err = ftpClient.ftp_cd(ftpDir.c_str());
 	if(err)
 	{
-		errInfo.append("ftp不能打开目录");
-		errInfo.append(SPLIT);
+		errInfo.append("can't open the directory");
 		return false;
 	}
 	chdir(dir.c_str());
@@ -263,9 +245,7 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 	if(err)
 	{
 		//上传文件错误
-		errInfo.append("ftp下载文件失败");
-		errInfo.append(SPLIT);
-		syslog(LOG_ERR,"download file failed!!!");
+		errInfo.append("can't download the file.");
 		chdir("/");
 		return false;
 	}
@@ -278,14 +258,12 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
 	{
-		syslog(LOG_INFO,"恢复MySQL数据库成功");
+		WriteLog(c,INFO,"success to restore the database");
 		return true;
 	}
 	else
 	{
-		errInfo.append("恢复MySQL数据库失败");
-		errInfo.append(SPLIT);
-		syslog(LOG_ERR,"恢复MySQL数据库失败");
+		errInfo.append("failed to restore the database");
 		return false;
 	}
 }

@@ -18,19 +18,21 @@
 #include "../src/hostOperation.h"
 //#include "../src/callPython.h"
 #include "../src/config.h"
+#include "../src/log.h"
 
 using namespace std;
 
 //全局变量，以后考虑怎么修改，尽量不要使用全局
 pthread_mutex_t mutex;  //互斥锁
 string dirPath;
+zlog_category_t *c;
 
 void* ProcSocket(void *arg);
 
 int main(int argc,char **argv)
 {
-	openlog("apache_conf",LOG_PID,0);
-/*	pid_t pid = fork();
+	char err[256];
+	pid_t pid = fork();
 	if(pid < 0)
 	{
 		exit(EXIT_FAILURE);
@@ -54,7 +56,7 @@ int main(int argc,char **argv)
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
-*/	
+	
 	//初始化python环境
 /*	if(!InitPythonEnv())
 	{
@@ -62,6 +64,10 @@ int main(int argc,char **argv)
 		exit(EXIT_FAILURE);
 	}
 	*/
+
+	//初始化log环境
+	InitLog();
+	c = GetCategory("main");
 
 	pthread_mutex_init(&mutex,NULL);
 
@@ -89,37 +95,42 @@ int main(int argc,char **argv)
 	serverSock->createSocket();
 	if(!serverSock->bindSocket((short)port))
 	{
-		syslog(LOG_EMERG,"can't bind the port %d",port);
+		sprintf(err,"can't bind the port %d.",port);
+		WriteLog(c,FATAL,err);
 		exit(EXIT_FAILURE);
 	}
 	if(!serverSock->listenSocket())
 	{
-		syslog(LOG_EMERG,"listen error");
+		sprintf(err,"can't listen on port %d.",port);
+		WriteLog(c,FATAL,err);
 		exit(EXIT_FAILURE);
 	}
 	
-	syslog(LOG_INFO,"the system start normally!!!");
+	WriteLog(c,INFO,"the system start normally!!!");
+	
 	MC_SOCKET sock;
 	struct sockaddr_in clientAddr;
 	while(1)
 	{
-		syslog(LOG_INFO,"ready to accept connection");
+		WriteLog(c,INFO,"ready to accpet connection");
 		sock = serverSock->acceptSocket((struct sockaddr*)&clientAddr);
 		if(sock <= 0)
 			break;
-		syslog(LOG_INFO,"accpet from client:%s",inet_ntoa(clientAddr.sin_addr));
+		sprintf(err,"accpet from client:%s",inet_ntoa(clientAddr.sin_addr));
+		WriteLog(c,INFO,err);
 
 		pthread_t thd;
 		int ret = pthread_create(&thd,NULL,ProcSocket,&sock);
 		if(ret != 0)
 		{
-			syslog(LOG_ERR,"failed to create the thread to proc this socket");
+			sprintf(err,"failed to create the thread to proc this socket from %s.",inet_ntoa(clientAddr.sin_addr));
+			WriteLog(c,INFO,err);
 		}
 	}
 	delete serverSock;
 //	UnInitPythonEnv();
-	syslog(LOG_INFO,"the system is ready to exit!!!");
-	closelog();
+	UnInitLog();
+	WriteLog(c,INFO,"the system is ready to exit!!!");
 	return 0;
 }
 
@@ -129,13 +140,14 @@ void* ProcSocket(void *arg)
 	ClientSocket *acceptSock = new ClientSocket(sock);
 	char *clientAddr = acceptSock->GetPeerName();
 	int total = 0;
-	string errInfo = ""; 
+	string errInfo = "";
+	char err[4096];
 	while(1)
 	{
 		fd_set fds;
 		FD_ZERO(&fds);
 		struct timeval tv;
-		tv.tv_sec = 2;
+		tv.tv_sec = 10;
 		tv.tv_usec = 0;
 		FD_SET(sock,&fds);
 		if(select(sock + 1,&fds,NULL,NULL,&tv) <= 0)
@@ -145,26 +157,26 @@ void* ProcSocket(void *arg)
 		int retByte = 0;
 		if((retByte = acceptSock->ReadNetData(buf,BUF_LENGTH)) < 0)
 		{
-			//出错
-			syslog(LOG_ERR,"read from %s error",clientAddr);
+			sprintf(err,"read from %s error.",clientAddr);
+			WriteLog(c,ERROR,err);
 			break;
 		}
 		else if(retByte == 0)
 		{
-			syslog(LOG_INFO,"%s close this connection",clientAddr);
+			sprintf(err,"%s close this connection.",clientAddr);
+			WriteLog(c,DEBUG,err);
 			break;
 		}
-		syslog(LOG_INFO,"接收到数据:%s,长度为：%d",buf,retByte);
+		sprintf(err,"Receive Data:%s,length = %d.",buf,retByte);
+		WriteLog(c,INFO,err);
 		total += retByte;
 		char *end = strstr(buf,PARAMEND);
 		if(end == NULL || strcmp(buf + strlen(buf) -3,PARAMEND) != 0)
 		{
-			//continue;
-			errInfo.append("the param error:");
-			errInfo.append(buf);
-			errInfo.append(PARAMEND);
-			syslog(LOG_ERR,errInfo.c_str());
+			errInfo.append("the param error.");
 			acceptSock->SendErrorInfo(errInfo.c_str());
+			sprintf(err,"the param error from %s.",clientAddr);
+			WriteLog(c,ERROR,err);
 			delete acceptSock;
 			pthread_exit(NULL);
 		}
@@ -172,16 +184,13 @@ void* ProcSocket(void *arg)
 		char *tmp = buf;
 		while(pStr = strstr(tmp,PARAMEND))
 		{
-
 			vector<pair<string,string> > vt_param;
 			if(!ProcParam(tmp,vt_param))
 			{
-				//参数解析出错
-				string err(tmp,pStr-tmp);
-				errInfo.append(err);
-				errInfo.append("failed to reslove the param:");
-				errInfo.append(PARAMEND);
-				syslog(LOG_ERR,"the param is not right from %s",clientAddr);
+				string t(tmp,pStr - tmp);
+				errInfo.append("failed to reslove the param. ");
+				sprintf(err,"the param %s is not right from %s",t.c_str(),clientAddr);
+				WriteLog(c,ERROR,err);
 				continue;
 			}
 			char *thisParam = tmp;
@@ -194,25 +203,40 @@ void* ProcSocket(void *arg)
 				{
 					if(!ProcHost(vt_param,errInfo))
 					{
-					/*	string strParam(thisParam,pStr + strlen(PARAMEND) - thisParam);
-						errInfo.append(strParam);*/
-						errInfo.append(PARAMEND);
+						errInfo.append("|");
 					}
 				}
 			}
 		}
+		if(errInfo.empty())
+		{
+			errInfo = SUCCESS;
+			sprintf(err,"success from %s",clientAddr);
+			WriteLog(c,INFO,err);
+		}
+		else
+		{
+			if(errInfo.c_str()[errInfo.length() - 1] == '|')
+				errInfo = errInfo.substr(0,errInfo.length() - 1);
+			sprintf(err,"%s from %s",errInfo.c_str(),clientAddr);
+			WriteLog(c,ERROR,err);
+		}
+		acceptSock->SendErrorInfo(errInfo.c_str());
 	}
-	if(errInfo.empty())
+/*	if(errInfo.empty())
 	{
 		errInfo = SUCCESS;
-		errInfo.append(PARAMEND);
-		syslog(LOG_INFO,errInfo.c_str());
+		sprintf(err,"success from %s",clientAddr);
+		WriteLog(INFO,err);
 	}
 	else
 	{
-		syslog(LOG_ERR,errInfo.c_str());
+		if(errInfo.c_str()[errInfo.length() - 1] == '|')
+			errInfo = errInfo.substr(0,errInfo.length() - 1);
+		sprintf(err,"%s from %s",errInfo.c_str(),clientAddr);
+		WriteLog(ERROR,err);
 	}
-	acceptSock->SendErrorInfo(errInfo.c_str());
+	acceptSock->SendErrorInfo(errInfo.c_str());*/
 	delete acceptSock;
 	pthread_exit(NULL);
 }

@@ -10,22 +10,19 @@
 #include "action.h"
 #include <syslog.h>
 #include <stdlib.h>
-
-//bool AddHost(vector<pair<string,string> > &vt_param);
+#include "log.h"
 
 bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 {
 	if(vt_param.size() < 2)
 	{
-		errInfo.append("参数太少");
-		errInfo.append(SPLIT);
+		errInfo.append("too less param. ");
 		return false;
 	}
 	pair<string,string> p = vt_param[1];
 	if(!IsEqualString(p.first,NFUNC))
 	{
-		errInfo.append("参数错误，未指定操作类型");
-		errInfo.append(SPLIT);
+		errInfo.append("error param:nfunc. ");
 		return false;
 	}
 	string value = p.second;
@@ -62,17 +59,16 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 
 		if(ftpName.empty())
 		{
-			errInfo.append("ftpName不能为空");
-			errInfo.append(SPLIT);
+			errInfo.append("ftpName cant't be empty ");
 			return false;
 		}
 		else
 		{
 			if(!RestoreConf(ftpName))
 			{
-				errInfo.append("恢复配置文件失败：");
+				errInfo.append("failed to restore the config filei:");
 				errInfo.append(ftpName);
-				errInfo.append(SPLIT);
+				errInfo.append(". ");
 				return false;
 			}
 		}
@@ -91,25 +87,19 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 	}
 	else
 	{
-		errInfo.append("未知的操作类型:");
+		errInfo.append("unknow operation:");
 		errInfo.append(value);
-		errInfo.append(SPLIT);
+		errInfo.append(". ");
 	}
-/*	if(!UpLoadFile())
-	{
-		//上传文件错误
-		
-	}*/
 	int ret = system("/sbin/service httpd restart >> /dev/null");
 	
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
 	{
-		syslog(LOG_INFO,"重启apache成功");
+		//WriteLog(INFO,"restart apache success.");
 	}
 	else
 	{
-		errInfo.append("重启apache失败");
-		errInfo.append(SPLIT);
+		errInfo.append("failed to restart apache. ");
 		return false;
 	}
 	return true;
