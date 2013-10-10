@@ -25,7 +25,7 @@ using namespace std;
 //全局变量，以后考虑怎么修改，尽量不要使用全局
 pthread_mutex_t mutex;  //互斥锁
 string dirPath;
-zlog_category_t *c;
+zlog_category_t *mainlog;
 
 void* ProcSocket(void *arg);
 
@@ -67,7 +67,7 @@ int main(int argc,char **argv)
 
 	//初始化log环境
 	InitLog();
-	c = GetCategory("main");
+	mainlog = GetCategory("main");
 
 	pthread_mutex_init(&mutex,NULL);
 
@@ -96,41 +96,41 @@ int main(int argc,char **argv)
 	if(!serverSock->bindSocket((short)port))
 	{
 		sprintf(err,"can't bind the port %d.",port);
-		WriteLog(c,FATAL,err);
+		WriteLog(mainlog,FATAL,err);
 		exit(EXIT_FAILURE);
 	}
 	if(!serverSock->listenSocket())
 	{
 		sprintf(err,"can't listen on port %d.",port);
-		WriteLog(c,FATAL,err);
+		WriteLog(mainlog,FATAL,err);
 		exit(EXIT_FAILURE);
 	}
 	
-	WriteLog(c,INFO,"the system start normally!!!");
+	WriteLog(mainlog,INFO,"the system start normally!!!");
 	
 	MC_SOCKET sock;
 	struct sockaddr_in clientAddr;
 	while(1)
 	{
-		WriteLog(c,INFO,"ready to accpet connection");
+		WriteLog(mainlog,INFO,"ready to accpet connection");
 		sock = serverSock->acceptSocket((struct sockaddr*)&clientAddr);
 		if(sock <= 0)
 			break;
 		sprintf(err,"accpet from client:%s",inet_ntoa(clientAddr.sin_addr));
-		WriteLog(c,INFO,err);
+		WriteLog(mainlog,INFO,err);
 
 		pthread_t thd;
 		int ret = pthread_create(&thd,NULL,ProcSocket,&sock);
 		if(ret != 0)
 		{
 			sprintf(err,"failed to create the thread to proc this socket from %s.",inet_ntoa(clientAddr.sin_addr));
-			WriteLog(c,INFO,err);
+			WriteLog(mainlog,INFO,err);
 		}
 	}
 	delete serverSock;
 //	UnInitPythonEnv();
 	UnInitLog();
-	WriteLog(c,INFO,"the system is ready to exit!!!");
+	WriteLog(mainlog,INFO,"the system is ready to exit!!!");
 	return 0;
 }
 
@@ -144,6 +144,7 @@ void* ProcSocket(void *arg)
 	char err[4096];
 	while(1)
 	{
+		errInfo = "";
 		fd_set fds;
 		FD_ZERO(&fds);
 		struct timeval tv;
@@ -158,17 +159,17 @@ void* ProcSocket(void *arg)
 		if((retByte = acceptSock->ReadNetData(buf,BUF_LENGTH)) < 0)
 		{
 			sprintf(err,"read from %s error.",clientAddr);
-			WriteLog(c,ERROR,err);
+			WriteLog(mainlog,ERROR,err);
 			break;
 		}
 		else if(retByte == 0)
 		{
 			sprintf(err,"%s close this connection.",clientAddr);
-			WriteLog(c,DEBUG,err);
+			WriteLog(mainlog,DEBUG,err);
 			break;
 		}
 		sprintf(err,"Receive Data:%s,length = %d.",buf,retByte);
-		WriteLog(c,INFO,err);
+		WriteLog(mainlog,INFO,err);
 		total += retByte;
 		char *end = strstr(buf,PARAMEND);
 		if(end == NULL || strcmp(buf + strlen(buf) -3,PARAMEND) != 0)
@@ -176,7 +177,7 @@ void* ProcSocket(void *arg)
 			errInfo.append("the param error.");
 			acceptSock->SendErrorInfo(errInfo.c_str());
 			sprintf(err,"the param error from %s.",clientAddr);
-			WriteLog(c,ERROR,err);
+			WriteLog(mainlog,ERROR,err);
 			delete acceptSock;
 			pthread_exit(NULL);
 		}
@@ -190,12 +191,12 @@ void* ProcSocket(void *arg)
 				string t(tmp,pStr - tmp);
 				errInfo.append("failed to reslove the param. ");
 				sprintf(err,"the param %s is not right from %s",t.c_str(),clientAddr);
-				WriteLog(c,ERROR,err);
+				WriteLog(mainlog,ERROR,err);
+				tmp = pStr + strlen(PARAMEND);
 				continue;
 			}
-			char *thisParam = tmp;
 			tmp = pStr + strlen(PARAMEND);
-
+					
 			pair<string,string> p = vt_param[0];
 			if(p.first.compare(COMTYPE) ==0)
 			{
@@ -212,31 +213,18 @@ void* ProcSocket(void *arg)
 		{
 			errInfo = SUCCESS;
 			sprintf(err,"success from %s",clientAddr);
-			WriteLog(c,INFO,err);
+			WriteLog(mainlog,INFO,err);
 		}
 		else
 		{
 			if(errInfo.c_str()[errInfo.length() - 1] == '|')
 				errInfo = errInfo.substr(0,errInfo.length() - 1);
 			sprintf(err,"%s from %s",errInfo.c_str(),clientAddr);
-			WriteLog(c,ERROR,err);
+			WriteLog(mainlog,ERROR,err);
 		}
 		acceptSock->SendErrorInfo(errInfo.c_str());
 	}
-/*	if(errInfo.empty())
-	{
-		errInfo = SUCCESS;
-		sprintf(err,"success from %s",clientAddr);
-		WriteLog(INFO,err);
-	}
-	else
-	{
-		if(errInfo.c_str()[errInfo.length() - 1] == '|')
-			errInfo = errInfo.substr(0,errInfo.length() - 1);
-		sprintf(err,"%s from %s",errInfo.c_str(),clientAddr);
-		WriteLog(ERROR,err);
-	}
-	acceptSock->SendErrorInfo(errInfo.c_str());*/
 	delete acceptSock;
+
 	pthread_exit(NULL);
 }

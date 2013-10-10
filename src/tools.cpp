@@ -326,3 +326,20 @@ void RmDir(const char *path)
 		closedir(dir);
 	}
 }
+
+void WriteParam(zlog_category_t *c,vector<pair<string,string> > &vt_param,string success)
+{
+	string param = "process the param:";
+	for(int i = 0; i < vt_param.size(); i++)
+	{
+		param.append(vt_param[i].first);
+		param.append("=");
+		param.append(vt_param[i].second);
+		param.append("|");
+	}
+	param.append(" ");
+	param.append(success);
+	char params[4096];
+	sprintf(params,"%s",param.c_str());
+	WriteLog(c,INFO,params);
+}

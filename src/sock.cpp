@@ -7,15 +7,10 @@
 
  ServerSocket::~ServerSocket()
 {
-//	if(_serverSock != NULL)
-//	{
-	//	delete _serverSock;
-	//	_serverSock = NULL;
 #ifdef WIN32
 		WSACleanup();
 #endif // WIN32
 		closeSocket();
-//	}
 }
 
 bool ServerSocket::createSocket()
@@ -31,7 +26,6 @@ bool ServerSocket::createSocket()
 
 bool ServerSocket::bindSocket(short port)
 {
-	//short port = 10000;
 	struct sockaddr_in addr;
 	memset(&addr,0,sizeof(addr));
 	addr.sin_family = AF_INET;
@@ -64,7 +58,6 @@ MC_SOCKET ServerSocket::acceptSocket(struct sockaddr* clientAddr)
 {
 	socklen_t len = sizeof(struct sockaddr);
 	MC_SOCKET tmp = accept(s,clientAddr,&len);
-	//MC_SOCKET tmp = accept(s,NULL,NULL);
 	return tmp;
 }
 

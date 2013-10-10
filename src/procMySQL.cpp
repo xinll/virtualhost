@@ -14,16 +14,21 @@
 #include "tools.h"
 #include <mysql/mysql.h>
 #include "log.h"
-#include "zlog.h"
 
-static zlog_category_t *c = NULL;
+zlog_category_t *c = NULL;
+extern pthread_mutex_t mutex;
 
 bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 {
+	pthread_mutex_lock(&mutex);
 	if(c == NULL)
 	{
 		c = GetCategory("backupMysql");
 	}
+	pthread_mutex_unlock(&mutex);
+
+	WriteParam(c,vt_param,"");
+
 	if(vt_param.size() < 5)
 	{
 		errInfo.append("too less param.");
@@ -98,6 +103,7 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 	{
 		//参数错误
 		errInfo.append("ftpUserName or mySQLUserName or mySQLDataBase not valid.");
+		WriteLog(c,ERROR,"ftpUserName or mySQLUserName or mySQLDataBase not valid");
 		return false;
 	}
 
@@ -115,6 +121,10 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 	else
 	{
 		errInfo.append("backup MySQL %s failed",mySQLDataBase.c_str());
+	
+		char tmp[256];
+		sprintf(tmp,"backup MySQL %s failed",mySQLDataBase.c_str());
+		WriteLog(c,INFO,tmp);
 		return false;
 	}
 	CFTP ftpClient;
@@ -144,11 +154,19 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 		return false;
 	}
 	ftpClient.ftp_quit();
+	WriteParam(c,vt_param,"success");
 	return true;
 }
 
 bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 {
+	pthread_mutex_lock(&mutex);
+	if(c == NULL)
+	{
+		c = GetCategory("backupMysql");
+	}
+	pthread_mutex_unlock(&mutex);
+	WriteParam(c,vt_param,"");
 	string ftpUserName,ftpPw,mySQLUserName,mySQLPw,mySQLDataBase,bakFileName;
 	int ftpPort = 21;
 	string ftpServer = "127.0.0.1";
@@ -214,6 +232,7 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 	{
 		//参数错误
 		errInfo.append("the param is not valid.");
+		WriteLog(c,ERROR,"ftpUserName or mySQLUserName or bakFileName not valid");
 		return false;
 	}
 	
@@ -259,11 +278,13 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
 	{
 		WriteLog(c,INFO,"success to restore the database");
+		WriteParam(c,vt_param,"success");
 		return true;
 	}
 	else
 	{
 		errInfo.append("failed to restore the database");
+		WriteParam(c,vt_param,"failed");
 		return false;
 	}
 }

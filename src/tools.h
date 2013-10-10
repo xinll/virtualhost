@@ -8,6 +8,8 @@
 #include <vector>
 #include <string>
 #include "defines.h"
+#include "log.h"
+
 using namespace std;
 
 bool ReadFile(vector<string> *vt_conf,const char *fileName);
@@ -31,3 +33,5 @@ bool StrInVt(string &str,vector<string> &vt);
 bool UpLoadFile(const char* ftpServer,const char* ftpUser,const char* ftpPwd,const char* file,const char* dir);
 
 void RmDir(const char* path);
+
+void WriteParam(zlog_category_t *c,vector<pair<string,string> > &vt_param,string success);

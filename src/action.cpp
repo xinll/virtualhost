@@ -12,9 +12,22 @@
 #include <string.h>
 #include <stdlib.h>
 #include "config.h"
+#include "log.h"
+
+zlog_category_t* errorDocument;
+zlog_category_t* filePermission;
+zlog_category_t* deleteDirectory;
+extern pthread_mutex_t mutex;
 
 bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
 {
+	pthread_mutex_lock(&mutex);
+	if(!errorDocument)
+		errorDocument = GetCategory("404");
+	pthread_mutex_unlock(&mutex);
+
+	WriteParam(errorDocument,vt_param,"");
+
 	if(vt_param.size() < 5)
 	{
 		errInfo.append("too less param.");
@@ -47,6 +60,7 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 	if(errorNum.empty() || userName.empty())
 	{
 		errInfo.append("errorNum or ftpName not valid.");
+		WriteLog(errorDocument,ERROR,"errorNum or ftpName not valid.");
 		return false;
 	}
 
@@ -59,6 +73,9 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 	{
 		errInfo.append("the file is using:");
 		errInfo.append(userName);
+		char err[256];
+		sprintf(err,"the config file is using %s.conf",userName);
+		WriteLog(errorDocument,ERROR,err);
 		return false;
 	}
 
@@ -67,6 +84,9 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 	{
 		errInfo.append("bak the config file failed:");
 		errInfo.append(userName);
+		char err[256];
+		sprintf(err,"backup the config file failed:%s.conf",userName);
+		WriteLog(errorDocument,ERROR,err);
 		success = false;
 	}
 
@@ -74,6 +94,9 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 	{
 		string err = virtualHost->GetLastErrorStr();
 		errInfo.append(err);
+		char tmp[256];
+		strcpy(tmp,err.c_str());
+		WriteLog(errorDocument,ERROR,tmp);
 		success = false;
 	}
 	if(success)
@@ -85,6 +108,9 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 		vector<string>::iterator it_directive = virtualHost->FindGlobalDirective(directive,par,1,virtualHost->GetIterator());
 		if(it_directive != virtualHost->GetEndIterator())
 		{
+			char tmp[256];
+			strcpy(tmp,(*it_directive).c_str());
+			WriteLog(errorDocument,INFO,tmp);
 			it_directive = virtualHost->EraseItem(it_directive);
 		}
 		else
@@ -98,19 +124,33 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 			success = false;
 			string err = virtualHost->GetLastErrorStr();
 			errInfo.append(err);
+			char tmp[256];
+			strcpy(tmp,err.c_str());
+			WriteLog(errorDocument,ERROR,tmp);
 			if(RestoreConf(userName))
 			{
 				errInfo.append("restore the config file failed:");
 				errInfo.append(userName);
+				char tmp[256];
+				sprintf(tmp,"restore the config file failed:%s.conf",userName);
+				WriteLog(errorDocument,ERROR,tmp);
 			}
 		}
 	}
+	WriteParam(errorDocument,vt_param,"success");
 	CVirtualHost::ReleaseVirtualHost(userName);
 	return success;
 }
 
 bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &errInfo)
 {	
+	pthread_mutex_lock(&mutex);
+	if(!filePermission)
+		filePermission = GetCategory("filePermission");
+	pthread_mutex_unlock(&mutex);
+
+	WriteParam(filePermission,vt_param,"");
+
 	if(vt_param.size() < 4)
 	{
 		errInfo.append("too less param.");
@@ -148,6 +188,7 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 	if(userName.empty() || file.empty() || permission < 0 || permission > 1)
 	{
 		errInfo.append("ftpName or permission not valid");
+		WriteLog(filePermission,ERROR,"ftpName or file permission invalid");
 		return false;
 	}
 
@@ -157,6 +198,9 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 	{
 		errInfo.append("the file is using:");
 		errInfo.append(userName);
+		char err[256];
+		sprintf(err,"the config file is using %s.conf",userName);
+		WriteLog(filePermission,ERROR,err);
 		return false;
 	}
 
@@ -165,6 +209,9 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 	{
 		errInfo.append("bak the config file failed:");
 		errInfo.append(userName);
+		char err[256];
+		sprintf(err,"bakup the config file failed:%s.conf",userName);
+		WriteLog(filePermission,ERROR,err);
 		success = false;
 	}
 	if(success && !virtualHost->LoadFile())
@@ -246,23 +293,37 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 			success = false;
 			string err = virtualHost->GetLastErrorStr();
 			errInfo.append(err);
+			char tmp[256];
+			strcpy(tmp,err.c_str());
+			WriteLog(filePermission,ERROR,tmp);
 			if(RestoreConf(userName))
 			{
 				errInfo.append("restore the config file failed:");
 				errInfo.append(userName);
+				char tmp[256];
+				sprintf(tmp,"restore the config file failed:%s.conf",userName);
+				WriteLog(filePermission,ERROR,tmp);
 			}
 		}
 	}
 	CVirtualHost::ReleaseVirtualHost(userName);
+	WriteParam(filePermission,vt_param,"success");
 	return success;
 }
 
 
 void CAction::DeleteRootDirectory(vector<pair<string,string> >&vt_param,string &errInfo)
 {
+	pthread_mutex_lock(&mutex);
+	if(!deleteDirectory)
+		deleteDirectory = GetCategory("deleteDirectory");
+	pthread_mutex_unlock(&mutex);
+
+	WriteParam(deleteDirectory,vt_param,"");
 	if(vt_param.size() < 3)
 	{
 		errInfo.append("too less param.");
+		WriteParam(deleteDirectory,vt_param,"failed");
 		return;
 	}
 
@@ -277,6 +338,7 @@ void CAction::DeleteRootDirectory(vector<pair<string,string> >&vt_param,string &
 	path.append(userName);
 	path.append("/home/wwwroot");
 	RmDir(path.c_str());
+	WriteParam(deleteDirectory,vt_param,"success");
 }
 
 
