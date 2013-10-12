@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include "config.h"
 #include "log.h"
+#include <stdio.h>
 
 zlog_category_t* errorDocument;
 zlog_category_t* filePermission;

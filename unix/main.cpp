@@ -19,15 +19,21 @@
 //#include "../src/callPython.h"
 #include "../src/config.h"
 #include "../src/log.h"
-
+#include <sys/time.h>
+#include <signal.h>
+#include "../src/procMySQL.h"
 using namespace std;
 
 //全局变量，以后考虑怎么修改，尽量不要使用全局
-pthread_mutex_t mutex;  //互斥锁
-string dirPath;
+pthread_mutex_t mutex; 
+//string dirPath;
 zlog_category_t *mainlog;
 
 void* ProcSocket(void *arg);
+void  TimerAction(int signo);
+void  InitSigAction();
+void  InitTimer();
+void* StartTimer(void *arg);
 
 int main(int argc,char **argv)
 {
@@ -82,13 +88,13 @@ int main(int argc,char **argv)
 		port = atoi(tmp.c_str());
 	}
 	//读取VirtualHost配置文件所在目录
-	tmp = config.GetValue("CONF_DIR");
+	/*tmp = config.GetValue("CONF_DIR");
 	if(!tmp.empty())
 	{
 		dirPath = tmp;
 	}
 	else
-		dirPath = "/etc/httpd/vhost.d/";
+		dirPath = "/etc/httpd/vhost.d/";*/
 	/*读取配置文件参数结束*/
 
 	ServerSocket *serverSock = ServerSocket::CreateInstance();
@@ -108,6 +114,14 @@ int main(int argc,char **argv)
 	
 	WriteLog(mainlog,INFO,"the system start normally!!!");
 	
+	pthread_t timer;
+	int timer_return = pthread_create(&timer,NULL,StartTimer,NULL);
+	if(timer_return != 0)
+	{
+		WriteLog(mainlog,ERROR,"can't start the timer");
+		exit(EXIT_FAILURE);
+	}
+
 	MC_SOCKET sock;
 	struct sockaddr_in clientAddr;
 	while(1)
@@ -227,4 +241,101 @@ void* ProcSocket(void *arg)
 	delete acceptSock;
 
 	pthread_exit(NULL);
+}
+
+typedef struct LimitSizeParam{
+	string ip;
+	string name;
+	string pwd;
+	string database;
+	string ftpName;
+	long long size;
+}SizeParam;
+
+void TimerAction(int signo)
+{
+	static vector<SizeParam> vt_param;
+	static int               InitTime = 0;
+	struct stat buf;
+	pthread_mutex_lock(&mutex);
+	int ret = stat("/usr/local/apache_conf/mysql.size",&buf);
+	pthread_mutex_unlock(&mutex);
+	if(ret != 0)
+		return;
+	if(InitTime == 0)
+	{
+		InitTime = buf.st_mtime;
+	}
+	else
+	{
+		if(InitTime != buf.st_mtime)
+		{
+			vt_param.clear();
+		}
+	}
+	vector<string> vt_tmp;
+	pthread_mutex_lock(&mutex);
+	if(!ReadFile(&vt_tmp,"/usr/local/apache_conf/mysql.size"))
+	{
+		pthread_mutex_unlock(&mutex);
+		return;
+	}
+	InitTime = buf.st_mtime;
+
+	pthread_mutex_unlock(&mutex);
+	vector<string>::iterator it;
+	vector<string> vt_sizeparam;
+	for(it = vt_tmp.begin(); it != vt_tmp.end(); it++)
+	{
+		vt_sizeparam.clear();
+		Split((*it),vt_sizeparam);
+		SizeParam p;
+		if(vt_sizeparam.size() < 3)
+			continue;
+		p.ip = vt_sizeparam[0];
+		p.name = "root";
+		Config config;
+		config.LoadConfigFile();
+		p.pwd = config.GetValue("MYSQLPWD");
+		p.ftpName = vt_sizeparam[1];
+		p.database = vt_sizeparam[2];
+		p.size = strtoll(vt_sizeparam[3].c_str(),NULL,0);
+		vt_param.push_back(p);
+	}
+	vector<SizeParam>::iterator it_doLimit;
+	for(it_doLimit = vt_param.begin(); it_doLimit!=vt_param.end(); it_doLimit++)
+	{
+		LimitMySQLSize((*it_doLimit).ip,(*it_doLimit).name,(*it_doLimit).pwd,(*it_doLimit).ftpName,(*it_doLimit).database,(*it_doLimit).size);	
+	}
+}
+
+void InitSigAction()
+{
+	struct sigaction act;
+	act.sa_handler = TimerAction;
+	act.sa_flags = 0;
+	sigemptyset(&act.sa_mask);
+	sigaction(SIGPROF,&act,NULL);
+}
+
+void InitTimer()
+{
+	Config config;
+	config.LoadConfigFile();
+	string value = config.GetValue("TIMERSECONDS");
+	if(value.empty())
+		value = "43200";
+	struct itimerval val;
+	val.it_value.tv_sec = atol(value.c_str());
+	val.it_value.tv_usec = 0;
+	val.it_interval = val.it_value;
+	setitimer(ITIMER_PROF,&val,NULL);
+}
+
+void* StartTimer(void* arg)
+{
+	InitSigAction();
+	InitTimer();
+	while(1);
+	return NULL;
 }

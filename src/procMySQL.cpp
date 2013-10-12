@@ -14,6 +14,8 @@
 #include "tools.h"
 #include <mysql/mysql.h>
 #include "log.h"
+#include <sys/stat.h>
+#include "config.h"
 
 zlog_category_t *c = NULL;
 extern pthread_mutex_t mutex;
@@ -302,7 +304,7 @@ long long GetDataBaseSize(string host,string user,string pwd,string db,unsigned 
 	}
 
 	string query = "SHOW TABLE STATUS";
-	if(!mysql_query(&mysql,query.c_str()))
+	if(mysql_query(&mysql,query.c_str()))
 	{
 		mysql_close(&mysql);
 		return 0;
@@ -328,17 +330,253 @@ long long GetDataBaseSize(string host,string user,string pwd,string db,unsigned 
 	return size;
 }
 
-/*extern pthread_mutex_t mutex;
-void LimitMySQLSize()
+bool LimitMySQLSize(string host,string user,string pwd,string ftpName,string db,long long maxsize)
 {
-	pthread_mutex_lock(&mutex);
-	vector<string> vt_conf;
-	ReadFile(&vt_conf,);
-	pthread_mutex_unlock(&mutex);
-	vector<string>::iterator it = vt_conf.begin();
-	vector<string>
-	for(; it != vt_conf.end(); it++)
+
+	MYSQL mysql;
+	
+	mysql_init(&mysql);
+	
+	if(!mysql_real_connect(&mysql,host.c_str(),user.c_str(),pwd.c_str(),db.c_str(),0,NULL,0))
 	{
-		
+		;//连接数据库失败
 	}
-}*/
+
+	string query = "SHOW TABLE STATUS";
+	if(mysql_query(&mysql,query.c_str()))
+	{
+		mysql_close(&mysql);
+		return false;
+	}
+	MYSQL_RES *result = mysql_store_result(&mysql);
+	if(result == NULL)
+	{
+		mysql_close(&mysql);
+		return false;
+	}
+
+	long long size = 0;
+	MYSQL_ROW row;
+	MYSQL_FIELD *fields = mysql_fetch_fields(result);
+	
+	while((row = mysql_fetch_row(result)))
+	{
+		if(row[6] != NULL)
+			size += strtoll(row[6],NULL,0);
+		if(row[8] != NULL)
+			size += strtoll(row[8],NULL,0);
+	}
+	mysql_free_result(result);
+	
+	bool success = false;
+	if(size/1024 >= maxsize) //转化为M
+	{
+		char tmpName[256];
+		char tmpdb[256];
+		mysql_real_escape_string(&mysql,tmpName,ftpName.c_str(),ftpName.size());
+		mysql_real_escape_string(&mysql,tmpdb,db.c_str(),db.size());
+		char tmpQuery[1024];
+		sprintf(tmpQuery,"REVOKE INSERT, UPDATE ON %s.* from %s",tmpdb,tmpName);
+		if(mysql_query(&mysql,tmpQuery) == 0)
+		{
+			strcat(tmpQuery," success");
+			WriteLog(c,INFO,tmpQuery);
+			success = true;
+		}
+		else
+		{
+			strcat(tmpQuery," failed");
+			WriteLog(c,ERROR,tmpQuery);
+		}
+	}
+	else
+	{
+		char tmpName[256];
+		char tmpdb[256];
+		mysql_real_escape_string(&mysql,tmpName,ftpName.c_str(),ftpName.size());
+		mysql_real_escape_string(&mysql,tmpdb,db.c_str(),db.size());
+		char tmpQuery[1024];
+		sprintf(tmpQuery,"GRANT INSERT, UPDATE ON %s.* to %s",tmpdb,tmpName);
+		if(mysql_query(&mysql,tmpQuery) == 0)
+		{
+			strcat(tmpQuery," success");
+			WriteLog(c,INFO,tmpQuery);
+			success = true;
+		}
+		else
+		{
+			strcat(tmpQuery," failed");
+			WriteLog(c,ERROR,tmpQuery);
+		}
+	}
+	mysql_close(&mysql);
+	return success;
+}
+
+bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool check)
+{
+	struct stat buf;
+	static vector<string> vt_conf;
+
+	string ftpName,db,size;
+	string ip = "127.0.0.1";
+	int length = vt_param.size();
+	for(int i = 2; i < length; i++)
+	{
+		if(IsEqualString(vt_param[i].first,MYSQLADDR))
+		{
+			ip = vt_param[i].second;
+			continue;
+		}
+		if(IsEqualString(vt_param[i].first,DBNAME))
+		{
+			db = vt_param[i].second;
+			continue;
+		}
+		if(IsEqualString(vt_param[i].first,MYSQLSIZE))
+		{
+			size = vt_param[i].second;
+			continue;
+		}
+		if(IsEqualString(vt_param[i].first,USERNAME))
+		{
+			ftpName = vt_param[i].second;
+			continue;
+		}
+	}
+
+	pthread_mutex_lock(&mutex);
+	if(c == NULL)
+	{
+		c = GetCategory("backupMysql");
+	}
+	pthread_mutex_unlock(&mutex);
+
+	WriteParam(c,vt_param,"");
+	if(vt_param.size() < 3 && !check)
+	{
+		errInfo.append("too less params");
+		return false;
+	}
+	else if(vt_param.size() < 2 && check)
+	{
+		errInfo.append("too less params");
+		return false;
+	}
+	if(check)
+	{
+		pthread_mutex_lock(&mutex);
+		if(vt_conf.size() == 0)
+		{
+			if(!ReadFile(&vt_conf,"/usr/local/apache_conf/mysql.size"))
+			{
+				errInfo.append("read /usr/local/apache_conf/mysql.size failed");
+				WriteLog(c,ERROR,"read /usr/local/apache_conf/mysql.size failed");
+				pthread_mutex_unlock(&mutex);
+				WriteParam(c,vt_param,"failed");
+				return false;
+			}
+		}
+		vector<string>::iterator it = vt_conf.begin();
+		vector<string> vt_tmp;
+		bool success = false;
+		for(;it != vt_conf.end();it++)
+		{
+			vt_tmp.clear();
+			Split((*it),vt_tmp);
+			if(vt_tmp.size() < 4)
+			{
+				continue;
+			}
+			if(vt_tmp[0].compare(ip) ==0 && vt_tmp[1].compare(ftpName) == 0 && vt_tmp[2].compare(db) == 0)
+			{
+				long long dbSize = strtoll(vt_tmp[3].c_str(),NULL,10);
+				
+				Config config;
+				config.LoadConfigFile();
+				string pwd = config.GetValue("MYSQLPWD");
+				success = LimitMySQLSize(vt_tmp[0],"root",pwd,vt_tmp[1],vt_tmp[2],dbSize);
+				break;
+			}
+		}
+		pthread_mutex_unlock(&mutex);
+		if(!success)
+		{
+			errInfo.append("revoke or grant failed");
+			WriteParam(c,vt_param,"failed");
+		}
+		else
+		{
+			WriteParam(c,vt_param,"success");
+		}
+		return success;
+	}
+	else
+	{
+		pthread_mutex_lock(&mutex);
+		int ret = stat("/usr/local/apache_conf/mysql.size",&buf);
+		string param;
+		param.append(ip);
+		param.append(" ");
+		param.append(ftpName);
+		param.append(" ");
+		param.append(db);
+		param.append(" ");
+		param.append(size);
+		param.append(NEWLINE);
+		if(ret != 0)
+		{
+			FILE *fp = fopen("/usr/local/apache_conf/mysql.size","a+");
+			if(NULL == fp)
+			{
+				pthread_mutex_unlock(&mutex);
+				return false;
+			}
+			fwrite(param.c_str(),param.size(),1,fp);
+			vt_conf.push_back(param);
+		}
+		else
+		{
+			if(vt_conf.size() == 0)
+			{
+				if(!ReadFile(&vt_conf,"/usr/local/apache_conf/mysql.size"))
+				{
+					errInfo.append("read /usr/local/apache_conf/mysql.size failed");
+					WriteLog(c,ERROR,"read /usr/local/apache_conf/mysql.size failed");
+					pthread_mutex_unlock(&mutex);
+					return false;
+				}
+			}
+			vector<string> vt_tmp;
+			vector<string>::iterator it = vt_conf.begin();
+			for(;it != vt_conf.end();)
+			{
+				vt_tmp.clear();
+				Split((*it),vt_tmp);
+				if(vt_tmp.size() < 4)
+				{
+					it++;
+					continue;
+				}
+				if(vt_tmp[0].compare(ip) ==0 && vt_tmp[1].compare(ftpName) == 0 && vt_tmp[2].compare(db) == 0)
+				{
+					vt_conf.erase(it);
+					continue;
+				}
+				else
+					it++;
+			}
+			vt_conf.push_back(param);
+			if(!WriteFile(&vt_conf,"/usr/local/apache_conf/mysql.size"))
+			{
+				errInfo.append("write /usr/local/apache_conf/mysql.size failed");
+				WriteLog(c,ERROR,"write /usr/local/apache_conf/mysql.size failed");	
+				pthread_mutex_unlock(&mutex);
+				return false;
+			}
+		}
+		pthread_mutex_unlock(&mutex);
+		WriteParam(c,vt_param,"success");
+		return true;
+	}
+}

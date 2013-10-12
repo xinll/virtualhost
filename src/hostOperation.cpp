@@ -8,12 +8,12 @@
 #include "hostOperation.h"
 #include "tools.h"
 #include "action.h"
-#include <syslog.h>
 #include <stdlib.h>
 #include "log.h"
 
 bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 {
+	bool reload = false;
 	if(vt_param.size() < 2)
 	{
 		errInfo.append("too less param. ");
@@ -34,12 +34,14 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 	}
 	else if(IsEqualString(value,ERRORDOCUMENT))
 	{
+		reload = true;
 		//修改错误页面
 		if(!CAction::ProcErrorDocument(vt_param,errInfo))
 			return false;
 	}
 	else if(IsEqualString(value,FILEPERMISSION))
 	{
+		reload = true;
 		//脚本权限
 		if(!CAction::ProcFilePermission(vt_param,errInfo))
 			return false;
@@ -47,6 +49,7 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 
 	else if(IsEqualString(value,RESTORECONF))
 	{
+		reload = true;
 		string ftpName = "";
 		for(int i = 2; i < vt_param.size(); i++)
 		{
@@ -81,9 +84,17 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 	{
 		return MySQLRestore(vt_param,errInfo);
 	}
+	else if(IsEqualString(value,LIMITMYSQLSIZE))
+	{
+		return RecordLimit(vt_param,errInfo,false);
+	}
 	else if(IsEqualString(value,DELETEDIR))
 	{
 		CAction::DeleteRootDirectory(vt_param,errInfo);
+	}
+	else if(IsEqualString(value,CHECKMYSQLSIZESTATE))
+	{
+		return RecordLimit(vt_param,errInfo,true);//立即检查
 	}
 	else
 	{
@@ -91,16 +102,19 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 		errInfo.append(value);
 		errInfo.append(". ");
 	}
-	int ret = system("/sbin/service httpd restart >> /dev/null");
+	if(reload)
+	{
+		int ret = system("/sbin/service httpd reload>/dev/null");
 	
-	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
-	{
+		if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
+		{
 		//WriteLog(INFO,"restart apache success.");
-	}
-	else
-	{
-		errInfo.append("failed to restart apache. ");
-		return false;
+		}
+		else
+		{
+			errInfo.append("failed to restart apache. ");
+			return false;
+		}
 	}
 	return true;
 }

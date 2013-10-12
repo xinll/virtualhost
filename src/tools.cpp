@@ -13,6 +13,8 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include "ftp.h"
+#include "config.h"
+
 bool ReadFile(vector<string> *vt_conf,const char *fileName)
 {
 
@@ -86,17 +88,39 @@ bool ProcParam(char *param,vector< pair<string,string> > &vt_param)
 	}
 	return true;
 }
+string GetEnvVar(string key)
+{
+	string value;
+	Config config;
+	config.LoadConfigFile();
+	return  config.GetValue(key);
+}
 
-extern string dirPath;
+string AddSlash(string str)
+{
+	if(str.c_str()[str.size() - 1] != '/')
+	{
+		str.append("/");
+	}
+	return str;
+}
+
 string MakeConfPath(string &ftpName)
 {
+	string dirPath = GetEnvVar("CONF_DIR");
+	if(dirPath.empty())
+		dirPath = "/etc/httpd/vhost.d/";
+	AddSlash(dirPath);
 	string path = dirPath + ftpName + ".conf";
 	return path;
 
 }
+
 //以"开头的字符串中遇到空格或tab不分割
 void Split(string source,vector<string> &result)
 {
+	if(source.rfind(NEWLINE) == source.size() - strlen(NEWLINE))
+		source = source.substr(0,source.size() - strlen(NEWLINE));
 	const char* data = source.c_str();
 	const char* firstCharNotSpace = data;
 	bool  marks = false;
@@ -155,6 +179,10 @@ void Split(string source,vector<string> &result)
 
 bool IsEqualString(string first,string second)
 {
+/*	if(strict)
+	{
+		return strcmp(first.c_str(),second.c_str()) == 0;
+	}*/
 	const char *f = first.c_str();
 	const char *s = second.c_str();
 	if(*f == '\"')
@@ -166,16 +194,44 @@ bool IsEqualString(string first,string second)
 		s = second.c_str() + 1;
 	}
 	int n = strlen(f) > strlen(s) ? strlen(s) : strlen(f);
-	return strncasecmp(first.c_str(),second.c_str(),n) == 0;
+	int m = strlen(f);
+	int k = strlen(s);
+	if(m != k && abs(m-k) != 1 && abs(m-k) != 2)
+	{
+		return false;
+	}
+	/*if(m != k)
+	{
+		if(*(f + m -1) != '\"' || *(f + m - 1) != '>' || *(s + k - 1) != '\"' || *(s + k - 1) != '>')
+			return false;
+	}*/
+	return strncasecmp(f,s,n) == 0;
 }
 
 
 bool BakConf(string &userName)
 {
-	chdir("/etc/httpd/vhost.d/");
+	string dirPath = GetEnvVar("CONF_DIR");
+	if(dirPath.empty())
+	{
+		dirPath = "/etc/httpd/vhost.d/";
+	}
+	chdir(dirPath.c_str());
+
 	string backupWhat = userName;
 	backupWhat.append(".conf");
-	string backupDir = "/backup_main/vhost-conf.zip";
+
+	string backupDir = GetEnvVar("BACKUPDIR");
+	if(backupDir.empty())
+		backupDir = "/backup_main/";
+	
+	if(NULL == opendir(backupDir.c_str()))
+		mkdir(backupDir.c_str(),0775);
+	
+	AddSlash(dirPath);
+	AddSlash(backupDir);
+
+	backupDir.append("vhost-conf.zip");
 	string cmd;
 	cmd = "zip -qu ";
 	cmd.append(backupDir);
@@ -192,16 +248,30 @@ bool BakConf(string &userName)
 
 bool RestoreConf(string &userName)
 {
+	string dirPath = GetEnvVar("CONF_DIR");
+	if(dirPath.empty())
+	{
+		dirPath = "/etc/httpd/vhost.d/";
+	}
+
+	string backupDir = GetEnvVar("BACKUPDIR");
+	if(backupDir.empty())
+		backupDir = "/backup_main/";
+
 	string restoreWhat = userName;
 	restoreWhat.append(".conf");
-	
-	string backupDir = "/backup_main/vhost-conf.zip";
+
+	AddSlash(backupDir);
+	AddSlash(dirPath);
+
+	backupDir.append("vhost-conf.zip");
 	string cmd = "unzip -qo ";
 	cmd.append(backupDir);
 	cmd.append(" ");
 	cmd.append(restoreWhat);
 	cmd.append(" ");
-	cmd.append("-d /etc/httpd/vhost.d");
+	cmd.append("-d ");
+	cmd.append(dirPath);
 	syslog(LOG_INFO,cmd.c_str());
 	int ret = system(cmd.c_str());
 

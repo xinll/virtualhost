@@ -62,6 +62,8 @@ typedef	int					MC_SOCKET;
 #define MYSQLBACK           "backupMySQL"
 #define MYSQLRESTORE        "restoreMySQL"
 #define DELETEDIR           "rmDir"
+#define LIMITMYSQLSIZE      "limitMySQL"
+#define CHECKMYSQLSIZESTATE "modifyMySQLLimitState"
 
 //修改错误页面参数
 #define ERRORNMSTR          "errorNum"
@@ -107,3 +109,7 @@ typedef	int					MC_SOCKET;
 #define WARN                4
 #define ERROR               5
 #define FATAL               6
+
+#define MYSQLADDR           "MySQLServer"
+#define DBNAME              "dbName"
+#define MYSQLSIZE           "size"

@@ -8,7 +8,7 @@ OBJS=${TARGET_DIR}/main.o
 all:${TARGET_DIR}/libsock.so ${TARGET_DIR}/libftp.so ${TARGET_DIR}/libtools.so ${TARGET_DIR}/libhostOperation.so ${TARGET_DIR}/libconfig.so ${TARGET_DIR}/liblog.so ${TARGET_DIR}/libprocMySQL.so ${TARGET_DIR}/libaction.so ${TARGET_DIR}/libvirtualHost.so ${TARGET} cleanObj
 
 ${TARGET_DIR}/liblog.so:${SRC_DIR}/log.cpp
-	g++ -w -D__unix -fPIC -shared $? -o $@ -lzlog -lpthread
+	g++ -w -D__unix -fPIC -shared $? -o $@
 
 ${TARGET_DIR}/libsock.so:${SRC_DIR}/sock.cpp
 	g++ -w -D__unix -fPIC -shared $? -o $@
@@ -54,7 +54,6 @@ clean:
 install:
 	-mkdir /usr/local/apache_conf
 	cp ${TARGET_DIR}/*.so /usr/lib
-	cp ${TARGET_DIR}/libzlog.so.1.1 /usr/lib
 	/sbin/ldconfig
 	cp ${TARGET_DIR}/apache_conf /usr/local/apache_conf
 	cp ${TARGET_DIR}/zlog.conf /usr/local/apache_conf
@@ -64,4 +63,4 @@ install:
 
 uninstall:
 	rm -f /usr/lib/libhostOperation.so /usr/lib/libsock.so /usr/lib/libftp.so /usr/lib/libtools.so /usr/lib/libconfig.so /usr/lib/liblog.so /usr/lib/libvirtualHost.so /usr/lib/libaction.so /usr/lib/libaction.so
-	rm -rf /usr/local/apache_conf
+	-rm -rf /usr/local/apache_conf

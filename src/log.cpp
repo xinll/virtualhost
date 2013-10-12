@@ -4,30 +4,36 @@
     > Mail: liangliangxinxin@yeah.net
     > Created Time: 2013年10月09日 星期三 15时34分47秒
  ************************************************************************/
-#include "zlog.h"
+//#include "zlog.h"
+#include "log.h"
 #include "defines.h"
-
+#include <syslog.h>
+#include <string.h>
 zlog_category_t *c;
 
 void InitLog()
 {
-	zlog_init("/usr/local/apache_conf/zlog.conf");
+//	zlog_init("/usr/local/apache_conf/zlog.conf");
+	openlog("apache_conf",LOG_PID | LOG_CONS,LOG_USER);
 }
 
 zlog_category_t* GetCategory(char* category)
 {
-	return zlog_get_category(category);
+//	return zlog_get_category(category);
+	return NULL;
 }
 
 void UnInitLog()
 {
-	zlog_fini();
+//	zlog_fini();
+	closelog();
 }
 
 
 void WriteLog(zlog_category_t* c,int level,char *log)
+//void WriteLog(int* c,int level,char *log)
 {
-	if(c)
+	/*if(c)
 	{
 		switch(level)
 		{
@@ -50,5 +56,26 @@ void WriteLog(zlog_category_t* c,int level,char *log)
 				zlog_fatal(c,log);
 				break;
 		}
-	}
+	}*/
+		switch(level)
+		{
+			case DEBUG:
+				syslog(LOG_DEBUG,log,strlen(log));
+				break;
+			case INFO:
+				syslog(LOG_INFO,log,strlen(log));
+				break;
+			case NOTICE:
+				syslog(LOG_NOTICE,log,strlen(log));
+				break;
+			case WARN:
+				syslog(LOG_WARNING,log,strlen(log));
+				break;
+			case ERROR:
+				syslog(LOG_ERR,log,strlen(log));
+				break;
+			case FATAL:
+				syslog(LOG_EMERG,log,strlen(log));
+				break;
+		}
 }
