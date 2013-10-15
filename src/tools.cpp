@@ -226,7 +226,10 @@ bool BakConf(string &userName)
 		backupDir = "/backup_main/";
 	
 	if(NULL == opendir(backupDir.c_str()))
-		mkdir(backupDir.c_str(),0775);
+	{
+		if(mkdir(backupDir.c_str(),0775) != 0)
+			return false;
+	}
 	
 	AddSlash(dirPath);
 	AddSlash(backupDir);

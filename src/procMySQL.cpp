@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include "config.h"
 
-zlog_category_t *c;
+zlog_category_t *c = NULL;
 extern pthread_mutex_t mutex;
 
 bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)

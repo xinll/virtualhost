@@ -22,6 +22,8 @@
 #include <sys/time.h>
 #include <signal.h>
 #include "../src/procMySQL.h"
+#include <sys/types.h>
+#include <sys/wait.h>
 using namespace std;
 
 //全局变量，以后考虑怎么修改，尽量不要使用全局
@@ -33,35 +35,87 @@ void  TimerAction(int signo);
 void  InitSigAction();
 void  InitTimer();
 void* StartTimer(void *arg);
+int   Children();
 
 int main(int argc,char **argv)
 {
-	char err[256];
+	int status;
+
 	pid_t pid = fork();
 	if(pid < 0)
 	{
 		exit(EXIT_FAILURE);
 	}
-	if(pid > 0)
+	else if(pid == 0)
 	{
+		pid_t sid = setsid();
+		if(sid < 0)
+		{
+			exit(EXIT_FAILURE);
+		}
+		if(chdir("/") < 0)
+		{
+			exit(EXIT_FAILURE);
+		}
+		umask(0);
+		close(STDIN_FILENO);
+		close(STDOUT_FILENO);
+		close(STDERR_FILENO);
+		signal(SIGCHLD,SIG_IGN);
+		for(;;)
+		{
+			pid_t tmp = fork();
+			if(tmp < 0)
+			{
+				exit(EXIT_FAILURE);
+			}
+			else if(tmp == 0)
+			{
+				signal(SIGCHLD,SIG_IGN);
+				Children();
+			}
+			else
+			{
+				waitpid(pid,&status,0);
+				if(WIFEXITED(status))
+				{
+					if(WEXITSTATUS(status) == 0)
+						exit(0);
+					if(WIFSIGNALED(status))
+					{
+						switch(WTERMSIG(status))
+						{
+							case SIGKILL:
+								exit(0);
+								break;
+							default:
+							{
+								break;
+							}
+						}
+					}
+				}
+				sleep(100);
+				continue;
+			}
+		}
+	}	
+	else
 		exit(EXIT_FAILURE);
-	}
-	pid_t sid = setsid();
-	if(sid < 0)
-	{
-		perror("setsid:");
-		exit(EXIT_FAILURE);
-	}
-	if(chdir("/") < 0)
-	{
-		perror("chdir:");
-		exit(EXIT_FAILURE);
-	}
-	umask(0);
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
-	
+	return 0;
+}
+
+void ProcSig(int sig)
+{
+	if(sig == SIGTERM || sig == SIGINT)
+		exit(0);
+}
+int Children()
+{
+	signal(SIGTERM,ProcSig);
+	signal(SIGINT,ProcSig);
+
+	char err[256];
 	//初始化python环境
 /*	if(!InitPythonEnv())
 	{
@@ -86,15 +140,6 @@ int main(int argc,char **argv)
 	{
 		port = atoi(tmp.c_str());
 	}
-	//读取VirtualHost配置文件所在目录
-	/*tmp = config.GetValue("CONF_DIR");
-	if(!tmp.empty())
-	{
-		dirPath = tmp;
-	}
-	else
-		dirPath = "/etc/httpd/vhost.d/";*/
-	/*读取配置文件参数结束*/
 
 	ServerSocket *serverSock = ServerSocket::CreateInstance();
 	serverSock->createSocket();
@@ -335,6 +380,9 @@ void* StartTimer(void* arg)
 {
 	InitSigAction();
 	InitTimer();
-	while(1);
+	while(1)
+	{
+		sleep(10);
+	}
 	return NULL;
 }

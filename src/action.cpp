@@ -15,9 +15,9 @@
 #include "log.h"
 #include <stdio.h>
 
-zlog_category_t *errorDocument;
-zlog_category_t *filePermission;
-zlog_category_t *deleteDirectory;
+zlog_category_t *errorDocument = NULL;
+zlog_category_t *filePermission = NULL;
+zlog_category_t *deleteDirectory = NULL;
 extern pthread_mutex_t mutex;
 
 bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
