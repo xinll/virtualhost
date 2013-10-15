@@ -8,7 +8,7 @@ OBJS=${TARGET_DIR}/main.o
 all:${TARGET_DIR}/libsock.so ${TARGET_DIR}/libftp.so ${TARGET_DIR}/libtools.so ${TARGET_DIR}/libhostOperation.so ${TARGET_DIR}/libconfig.so ${TARGET_DIR}/liblog.so ${TARGET_DIR}/libprocMySQL.so ${TARGET_DIR}/libaction.so ${TARGET_DIR}/libvirtualHost.so ${TARGET} cleanObj
 
 ${TARGET_DIR}/liblog.so:${SRC_DIR}/log.cpp
-	g++ -w -D__unix -fPIC -shared $? -o $@
+	g++ -w -D__unix -fPIC -shared $? -lzlog -L/usr/local/lib -o $@
 
 ${TARGET_DIR}/libsock.so:${SRC_DIR}/sock.cpp
 	g++ -w -D__unix -fPIC -shared $? -o $@
@@ -35,7 +35,7 @@ ${TARGET_DIR}/libprocMySQL.so:${SRC_DIR}/procMySQL.cpp
 	g++ -w -D__unix -fPIC -shared $? -o $@ -lmysqlclient -L/usr/lib/mysql/
 
 ${TARGET}:${OBJS}
-	g++ $? -lhostOperation -lsock -ltools -lftp -lconfig -lpthread -lvirtualHost -laction -lprocMySQL -llog -L./tmp/ -o $@
+	g++ $? -lhostOperation -lsock -ltools -lftp -lconfig -lpthread -lvirtualHost -laction -lprocMySQL -llog -L./tmp/ -o $@ 
 
 ${TARGET_DIR}/main.o:main.cpp
 	g++ -w -c $? -o $@

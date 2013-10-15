@@ -17,13 +17,13 @@
 #include <sys/stat.h>
 #include "config.h"
 
-zlog_category_t *c = NULL;
+zlog_category_t *c;
 extern pthread_mutex_t mutex;
 
 bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 {
 	pthread_mutex_lock(&mutex);
-	if(c == NULL)
+	if(!c)
 	{
 		c = GetCategory("backupMysql");
 	}
@@ -163,7 +163,7 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 {
 	pthread_mutex_lock(&mutex);
-	if(c == NULL)
+	if(!c)
 	{
 		c = GetCategory("backupMysql");
 	}

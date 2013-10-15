@@ -26,7 +26,6 @@ using namespace std;
 
 //全局变量，以后考虑怎么修改，尽量不要使用全局
 pthread_mutex_t mutex; 
-//string dirPath;
 zlog_category_t *mainlog;
 
 void* ProcSocket(void *arg);
