@@ -61,7 +61,6 @@ int main(int argc,char **argv)
 		close(STDIN_FILENO);
 		close(STDOUT_FILENO);
 		close(STDERR_FILENO);
-		signal(SIGCHLD,SIG_IGN);
 		for(;;)
 		{
 			pid_t tmp = fork();
@@ -71,7 +70,6 @@ int main(int argc,char **argv)
 			}
 			else if(tmp == 0)
 			{
-				signal(SIGCHLD,SIG_IGN);
 				Children();
 			}
 			else

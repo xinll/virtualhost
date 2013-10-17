@@ -14,6 +14,7 @@
 #include <dirent.h>
 #include "ftp.h"
 #include "config.h"
+#include <errno.h>
 
 bool ReadFile(vector<string> *vt_conf,const char *fileName)
 {
@@ -231,8 +232,8 @@ bool BakConf(string &userName)
 			return false;
 	}
 	
-	AddSlash(dirPath);
-	AddSlash(backupDir);
+	dirPath = AddSlash(dirPath);
+	backupDir = AddSlash(backupDir);
 
 	backupDir.append("vhost-conf.zip");
 	string cmd;
@@ -244,9 +245,13 @@ bool BakConf(string &userName)
 	int ret = system(cmd.c_str());
 	chdir("/");
 	if(ret != -1 && WIFEXITED(ret) && (WEXITSTATUS(ret) == 0 || WEXITSTATUS(ret) == 12))
+	{
 		return true;
+	}
 	else
+	{
 		return false;
+	}
 }
 
 bool RestoreConf(string &userName)

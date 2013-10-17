@@ -8,6 +8,8 @@
 #include<vector>
 #include<string>
 using namespace std;
+
+class CVirtualHost;
 class CAction
 {
 public:
@@ -16,4 +18,11 @@ public:
 	static bool ProcFilePermission(vector<pair<string,string> > &vt_param,string &errInfo);
 
 	static void DeleteRootDirectory(vector<pair<string,string> >&vt_param,string &errInfo);
+
+	static bool ProcRedirect(vector<pair<string,string> >&vt_param,string &errInfo);
+
+private:
+	static void AddRedirect(string &redirectFrom,string &redirectTo,CVirtualHost *host);
+
+	static void DeleteRedirect(string &redirectFrom,CVirtualHost *host);
 };

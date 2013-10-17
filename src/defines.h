@@ -64,6 +64,7 @@ typedef	int					MC_SOCKET;
 #define DELETEDIR           "rmDir"
 #define LIMITMYSQLSIZE      "limitMySQL"
 #define CHECKMYSQLSIZESTATE "modifyMySQLLimitState"
+#define REDIRECT            "redirect"
 
 //修改错误页面参数
 #define ERRORNMSTR          "errorNum"
@@ -113,3 +114,8 @@ typedef	int					MC_SOCKET;
 #define MYSQLADDR           "MySQLServer"
 #define DBNAME              "dbName"
 #define MYSQLSIZE           "size"
+
+#define REDIRECTFROM        "from"
+#define REDIRECTTO          "to"
+#define REWRITEENGINE       "RewriteEngine"
+#define ACTION              "action"

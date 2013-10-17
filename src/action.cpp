@@ -18,6 +18,7 @@
 zlog_category_t *errorDocument = NULL;
 zlog_category_t *filePermission = NULL;
 zlog_category_t *deleteDirectory = NULL;
+zlog_category_t *redirect = NULL;
 extern pthread_mutex_t mutex;
 
 bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
@@ -75,7 +76,7 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 		errInfo.append("the file is using:");
 		errInfo.append(userName);
 		char err[256];
-		sprintf(err,"the config file is using %s.conf",userName);
+		sprintf(err,"the config file is using %s.conf",userName.c_str());
 		WriteLog(errorDocument,ERROR,err);
 		return false;
 	}
@@ -86,8 +87,10 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 		errInfo.append("bak the config file failed:");
 		errInfo.append(userName);
 		char err[256];
-		sprintf(err,"backup the config file failed:%s.conf",userName);
+
+		sprintf(err,"backup the config file failed:%s.conf",userName.c_str());
 		WriteLog(errorDocument,ERROR,err);
+
 		success = false;
 	}
 
@@ -138,7 +141,10 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 			}
 		}
 	}
-	WriteParam(errorDocument,vt_param,"success");
+	if(success)
+		WriteParam(errorDocument,vt_param,"success");
+	else
+		WriteParam(errorDocument,vt_param,"failed");
 	CVirtualHost::ReleaseVirtualHost(userName);
 	return success;
 }
@@ -200,7 +206,7 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 		errInfo.append("the file is using:");
 		errInfo.append(userName);
 		char err[256];
-		sprintf(err,"the config file is using %s.conf",userName);
+		sprintf(err,"the config file is using %s.conf",userName.c_str());
 		WriteLog(filePermission,ERROR,err);
 		return false;
 	}
@@ -211,7 +217,7 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 		errInfo.append("bak the config file failed:");
 		errInfo.append(userName);
 		char err[256];
-		sprintf(err,"bakup the config file failed:%s.conf",userName);
+		sprintf(err,"bakup the config file failed:%s.conf",userName.c_str());
 		WriteLog(filePermission,ERROR,err);
 		success = false;
 	}
@@ -302,7 +308,7 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 				errInfo.append("restore the config file failed:");
 				errInfo.append(userName);
 				char tmp[256];
-				sprintf(tmp,"restore the config file failed:%s.conf",userName);
+				sprintf(tmp,"restore the config file failed:%s.conf",userName.c_str());
 				WriteLog(filePermission,ERROR,tmp);
 			}
 		}
@@ -342,4 +348,246 @@ void CAction::DeleteRootDirectory(vector<pair<string,string> >&vt_param,string &
 	WriteParam(deleteDirectory,vt_param,"success");
 }
 
+void CAction::AddRedirect(string &redirectFrom,string &redirectTo,CVirtualHost *virtualHost)
+{
+	char buf[256];
+	string directive = REWRITEENGINE;
+	vector<string> vt_tmpParam;
+	vector<string>::iterator it = virtualHost->FindGlobalDirective(directive,NULL,0,virtualHost->GetIterator());
+	//处理rewriteengine
+	bool exist = false;
+	if(it != virtualHost->GetEndIterator())
+	{
+		exist = true;
+		vector<string> vt_tmp;
+		Split((*it),vt_tmp);
+		if(vt_tmp.size() != 2 || vt_tmp[1].compare("on") != 0)
+		{
+			string log = "line delete: ";
+			log.append(*it);
+			sprintf(buf,"%s from %s",log.c_str(),virtualHost->GetFileName().c_str());
+			WriteLog(redirect,INFO,buf);
+			virtualHost->EraseItem(it);
+			exist = false;
+		}
+		
+	}
+	if(!exist)
+	{
+		vt_tmpParam.push_back("on");
+		virtualHost->AddDirective(directive,virtualHost->GetIterator() + 1,vt_tmpParam,4);
+		string log = "line add: ";
+		log.append(directive);
+		log.append(" on");
+		sprintf(buf,"%s from %s",log.c_str(),virtualHost->GetFileName().c_str());
+		WriteLog(redirect,INFO,buf);
+	}
+	directive = "RewriteCond";
+	string tmp = "^";
+	tmp.append(redirectFrom);
+	tmp.append("$");
+	string param[] = {"%{\"HTTP_POST\"}",tmp};
+	it = virtualHost->FindGlobalDirective(directive,param,2,virtualHost->GetIterator());
+	if(it != virtualHost->GetEndIterator())
+	{
+		it++;
+		string log = "line delete: ";
+		log.append(*it);
+		sprintf(buf,"%s from %s",log.c_str(),virtualHost->GetFileName().c_str());
+		WriteLog(redirect,INFO,buf);
+		virtualHost->EraseItem(it);
+	}
+	else
+	{
+		vt_tmpParam.clear();
+		directive = REWRITEENGINE;
+		vector<string>::iterator it_insert = virtualHost->FindGlobalDirective(directive,NULL,0,virtualHost->GetIterator());
+	/*	it_insert++;
+		virtualHost->AddDirective(directive,it_insert,vt_tmpParam,4);
+		vt_tmpParam.clear();*/
+		it_insert++;
+
+		directive = "RewriteCond";
+		vt_tmpParam.push_back("%{HTTP_POST}");
+		string tmp = "^";
+		tmp.append(redirectFrom);
+		tmp.append("$");
+		vt_tmpParam.push_back(tmp);
+		vt_tmpParam.push_back("[NC]");
+		virtualHost->AddDirective(directive,it_insert,vt_tmpParam,4);
+		string log = "line add: ";
+		log.append(*it);
+		sprintf(buf,"%s from %s",log.c_str(),virtualHost->GetFileName().c_str());
+		WriteLog(redirect,INFO,buf);
+		vt_tmpParam.clear();
+		it_insert++;
+		it = it_insert;
+	}
+	directive="RewriteRule";
+	vt_tmpParam.push_back("^(.*)$");
+	if(redirectTo.c_str()[redirectTo.size() - 1] != '/')
+		redirectTo.append("/");
+	redirectTo.append("$1");
+	vt_tmpParam.push_back(redirectTo);
+	vt_tmpParam.push_back("[L,R=301]");
+	virtualHost->AddDirective(directive,it,vt_tmpParam,4);
+	string log = "line add: ";
+	log.append(*it);
+	sprintf(buf,"%s from %s",log.c_str(),virtualHost->GetFileName().c_str());
+	WriteLog(redirect,INFO,buf);
+}
+
+void CAction::DeleteRedirect(string &redirectFrom,CVirtualHost *virtualHost)
+{
+	string directive = "RewriteCond";
+	string tmp = "^";
+	tmp.append(redirectFrom);
+	tmp.append("$");
+	string param[] = {"%{\"HTTP_POST\"}",tmp};
+	vector<string>::iterator it = virtualHost->FindGlobalDirective(directive,param,2,virtualHost->GetIterator());
+	if(it != virtualHost->GetEndIterator())
+	{
+		string log = "line delete: ";
+		log.append(*it);
+		char buf[256];
+		sprintf(buf,"%s from %s",log.c_str(),virtualHost->GetFileName().c_str());
+		WriteLog(redirect,INFO,buf);
+		virtualHost->EraseItem(it);
+
+		log = "line delete: ";
+		log.append(*it);
+		sprintf(buf,"%s from %s",log.c_str(),virtualHost->GetFileName().c_str());
+		WriteLog(redirect,INFO,buf);
+	/*	if(redirectTo.c_str()[redirectTo.size() - 1] != '/')
+			redirectTo.append("/");
+		redirectTo.append("$1");
+		param[0] = "^(.*)$";
+		param[1] = redirectTo;
+		it = virtualHost->FindGlobalDirective(directive,param,2,it);
+		if(it != virtualHost.GetEndIterator())*/
+			virtualHost->EraseItem(it);
+	}
+}
+
+bool CAction::ProcRedirect(vector<pair<string,string> > &vt_param,string &errInfo)
+{
+	pthread_mutex_lock(&mutex);
+	if(!redirect)
+		redirect = GetCategory("redirect");
+	pthread_mutex_unlock(&mutex);
+
+	WriteParam(redirect,vt_param,"");
+
+	if(vt_param.size() < 6)
+	{
+		errInfo.append("too less param.");
+		return false;
+	}
+	string redirectFrom = "";
+	string redirectTo = "";
+	string userName;
+	string action;
+
+	//解析参数，分别赋值
+	vector<pair<string,string> >::iterator it = vt_param.begin();
+	it++;
+	it++;
+	for(;it != vt_param.end(); it++)
+	{
+		if((*it).first.compare(USERNAME) == 0)
+		{
+			userName = (*it).second;
+			continue;
+		}
+		if((*it).first.compare(REDIRECTFROM) == 0)
+		{
+			redirectFrom = (*it).second;
+			continue;
+		}
+		if((*it).first.compare(REDIRECTTO) == 0)
+		{
+			redirectTo = (*it).second;
+			continue;
+		}
+		if((*it).first.compare(ACTION) == 0)
+		{
+			action = (*it).second;
+			continue;
+		}
+	}
+	if(action.compare("add") == 0)
+	{
+		if(redirectTo.empty())
+		{
+		errInfo.append("redirectTo can't be empty");
+		WriteLog(redirect,ERROR,"redirectTo can't be empty");
+			return false;
+		}
+	}
+	if(redirectFrom.empty() || userName.empty() || action.empty())
+	{
+		errInfo.append("ftpName or from or or action not valid");
+		WriteLog(redirect,ERROR,"ftpName or redirectfrom or action invalid");
+		return false;
+	}
+
+	CVirtualHost* virtualHost = CVirtualHost::GetVirtualHost(userName);
+	if(virtualHost == NULL)
+	{
+		errInfo.append("the file is using:");
+		errInfo.append(userName);
+		char err[256];
+		sprintf(err,"the config file is using %s.conf",userName.c_str());
+		WriteLog(redirect,ERROR,err);
+		return false;
+	}
+
+	bool success = true;
+	if(!BakConf(userName))
+	{
+		errInfo.append("bak the config file failed:");
+		errInfo.append(userName);
+		char err[256];
+		sprintf(err,"bakup the config file failed:%s.conf",userName.c_str());
+		WriteLog(redirect,ERROR,err);
+		success = false;
+	}
+	if(success && !virtualHost->LoadFile())
+	{
+		string err = virtualHost->GetLastErrorStr();
+		errInfo.append(err);
+		success = false;
+	}
+	
+	if(success && action.compare("add") == 0)
+	{
+		AddRedirect(redirectFrom,redirectTo,virtualHost);
+	}
+	else if(success && action.compare("delete") == 0)
+	{
+		DeleteRedirect(redirectFrom,virtualHost);
+	}
+
+	if(success && !virtualHost->SaveFile())
+	{
+		success = false;
+		string err = virtualHost->GetLastErrorStr();
+		errInfo.append(err);
+		char tmp[256];
+		strcpy(tmp,err.c_str());
+		WriteLog(filePermission,ERROR,tmp);
+		if(RestoreConf(userName))
+		{
+			errInfo.append("restore the config file failed:");
+			errInfo.append(userName);
+			char tmp[256];
+			sprintf(tmp,"restore the config file failed:%s.conf",userName.c_str());
+			WriteLog(filePermission,ERROR,tmp);
+		}
+	}
+
+	CVirtualHost::ReleaseVirtualHost(userName);
+	WriteParam(redirect,vt_param,"success");
+	return success;
+}
 

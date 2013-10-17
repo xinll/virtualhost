@@ -96,11 +96,16 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 	{
 		return RecordLimit(vt_param,errInfo,true);//立即检查
 	}
+	else if(IsEqualString(value,REDIRECT))
+	{
+		reload = true;
+		return CAction::ProcRedirect(vt_param,errInfo);
+	}
 	else
 	{
 		errInfo.append("unknow operation:");
 		errInfo.append(value);
-		errInfo.append(". ");
+		return false;
 	}
 	if(reload)
 	{
