@@ -53,7 +53,7 @@ typedef	int					MC_SOCKET;
 
 //动作类型
 #define STRHOST             "host"
-
+#define STRSQL              "sql"
 //虚拟主机下具体功能
 #define ERRORDOCUMENT       "errorDocument"
 #define CREATEHOST          "createHost"
@@ -65,6 +65,7 @@ typedef	int					MC_SOCKET;
 #define LIMITMYSQLSIZE      "limitMySQL"
 #define CHECKMYSQLSIZESTATE "modifyMySQLLimitState"
 #define REDIRECT            "redirect"
+#define MINE                "mine"
 
 //修改错误页面参数
 #define ERRORNMSTR          "errorNum"
@@ -119,3 +120,6 @@ typedef	int					MC_SOCKET;
 #define REDIRECTTO          "to"
 #define REWRITEENGINE       "RewriteEngine"
 #define ACTION              "action"
+
+#define MINETYPE            "mineType"
+#define MINEPROCESS         "mineMethod"

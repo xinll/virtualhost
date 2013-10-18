@@ -339,7 +339,8 @@ bool LimitMySQLSize(string host,string user,string pwd,string ftpName,string db,
 	
 	if(!mysql_real_connect(&mysql,host.c_str(),user.c_str(),pwd.c_str(),db.c_str(),0,NULL,0))
 	{
-		;//连接数据库失败
+		WriteLog(c,ERROR,"con't connect the mysql server");
+		return false;
 	}
 
 	string query = "SHOW TABLE STATUS";
@@ -418,16 +419,11 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 	struct stat buf;
 	static vector<string> vt_conf;
 
-	string ftpName,db,size;
+	string db,size;
 	string ip = "127.0.0.1";
 	int length = vt_param.size();
 	for(int i = 2; i < length; i++)
 	{
-		if(IsEqualString(vt_param[i].first,MYSQLADDR))
-		{
-			ip = vt_param[i].second;
-			continue;
-		}
 		if(IsEqualString(vt_param[i].first,DBNAME))
 		{
 			db = vt_param[i].second;
@@ -438,13 +434,8 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 			size = vt_param[i].second;
 			continue;
 		}
-		if(IsEqualString(vt_param[i].first,USERNAME))
-		{
-			ftpName = vt_param[i].second;
-			continue;
-		}
 	}
-
+	
 	pthread_mutex_lock(&mutex);
 	if(c == NULL)
 	{
@@ -453,12 +444,12 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 	pthread_mutex_unlock(&mutex);
 
 	WriteParam(c,vt_param,"");
-	if(vt_param.size() < 3 && !check)
+	if(vt_param.size() < 4 && !check)
 	{
 		errInfo.append("too less params");
 		return false;
 	}
-	else if(vt_param.size() < 2 && check)
+	else if(vt_param.size() < 3 && check)
 	{
 		errInfo.append("too less params");
 		return false;
@@ -484,18 +475,18 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 		{
 			vt_tmp.clear();
 			Split((*it),vt_tmp);
-			if(vt_tmp.size() < 4)
+			if(vt_tmp.size() < 2)
 			{
 				continue;
 			}
-			if(vt_tmp[0].compare(ip) ==0 && vt_tmp[1].compare(ftpName) == 0 && vt_tmp[2].compare(db) == 0)
+			if(vt_tmp[0].compare(db) == 0)
 			{
-				long long dbSize = strtoll(vt_tmp[3].c_str(),NULL,10);
+				long long dbSize = strtoll(vt_tmp[0].c_str(),NULL,10);
 				
 				Config config;
 				config.LoadConfigFile();
 				string pwd = config.GetValue("MYSQLPWD");
-				success = LimitMySQLSize(vt_tmp[0],"root",pwd,vt_tmp[1],vt_tmp[2],dbSize);
+				success = LimitMySQLSize(ip,"root",pwd,db,db,dbSize);
 				break;
 			}
 		}
@@ -516,10 +507,6 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 		pthread_mutex_lock(&mutex);
 		int ret = stat("/usr/local/apache_conf/mysql.size",&buf);
 		string param;
-		param.append(ip);
-		param.append(" ");
-		param.append(ftpName);
-		param.append(" ");
 		param.append(db);
 		param.append(" ");
 		param.append(size);
@@ -532,7 +519,9 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 				pthread_mutex_unlock(&mutex);
 				return false;
 			}
+			syslog(LOG_INFO,"hello world");
 			fwrite(param.c_str(),param.size(),1,fp);
+			fclose(fp);
 			vt_conf.push_back(param);
 		}
 		else
@@ -553,12 +542,12 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 			{
 				vt_tmp.clear();
 				Split((*it),vt_tmp);
-				if(vt_tmp.size() < 4)
+				if(vt_tmp.size() < 2)
 				{
 					it++;
 					continue;
 				}
-				if(vt_tmp[0].compare(ip) ==0 && vt_tmp[1].compare(ftpName) == 0 && vt_tmp[2].compare(db) == 0)
+				if(vt_tmp[0].compare(db) == 0)
 				{
 					vt_conf.erase(it);
 					continue;

@@ -24,6 +24,8 @@
 #include "../src/procMySQL.h"
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "../src/sqlOperation.h"
+
 using namespace std;
 
 //全局变量，以后考虑怎么修改，尽量不要使用全局
@@ -263,6 +265,13 @@ void* ProcSocket(void *arg)
 						errInfo.append("|");
 					}
 				}
+				else if(p.second.compare(STRSQL) == 0)
+				{
+					if(!ProcSql(vt_param,errInfo))
+					{
+						errInfo.append("|");
+					}
+				}
 			}
 		}
 		if(errInfo.empty())
@@ -332,16 +341,16 @@ void TimerAction(int signo)
 		vt_sizeparam.clear();
 		Split((*it),vt_sizeparam);
 		SizeParam p;
-		if(vt_sizeparam.size() < 3)
+		if(vt_sizeparam.size() < 2)
 			continue;
-		p.ip = vt_sizeparam[0];
+		p.ip = "127.0.0.1";
 		p.name = "root";
 		Config config;
 		config.LoadConfigFile();
 		p.pwd = config.GetValue("MYSQLPWD");
-		p.ftpName = vt_sizeparam[1];
-		p.database = vt_sizeparam[2];
-		p.size = strtoll(vt_sizeparam[3].c_str(),NULL,0);
+		p.ftpName = vt_sizeparam[0];
+		p.database = vt_sizeparam[0];
+		p.size = strtoll(vt_sizeparam[1].c_str(),NULL,0);
 		vt_param.push_back(p);
 	}
 	vector<SizeParam>::iterator it_doLimit;

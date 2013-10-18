@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "defines.h"
+#include <syslog.h>
 
 extern pthread_mutex_t mutex;
 vector<CVirtualHost*> CVirtualHost:: vt_virtualHost;
@@ -173,7 +174,9 @@ vector<string>::iterator CVirtualHost::FindGlobalDirective(string &directive,str
 		if(vt_tmp.size() > 0 && IsEqualString(vt_tmp[0],directive) && !node)
 		{
 			if(vt_tmp.size() < n)
+			{
 				continue;
+			}
 			for(int i = 0; i < n; i++)
 			{
 				if(!StrInVt(param[i],vt_tmp))

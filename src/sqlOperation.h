@@ -1,12 +1,13 @@
 /*************************************************************************
-    > File Name: hostOperation.h
+    > File Name: sqlOperation.h
     > Author: xinll
     > Mail: liangliangxinxin@yeah.net
-    > Created Time: 2013年09月16日 星期一 10时10分44秒
+    > Created Time: 2013年10月18日 星期五 17时57分05秒
  ************************************************************************/
+
 
 #include <string>
 #include <vector>
 using namespace std;
 
-bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo);
+bool ProcSql(vector<pair<string,string> > vt_param,string &errInfo);
