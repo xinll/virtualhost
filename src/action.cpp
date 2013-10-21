@@ -502,8 +502,8 @@ bool CAction::ProcRedirect(vector<pair<string,string> > &vt_param,string &errInf
 	{
 		if(redirectTo.empty())
 		{
-		errInfo.append("redirectTo can't be empty");
-		WriteLog(redirect,ERROR,"redirectTo can't be empty");
+			errInfo.append("redirectTo can't be empty");
+			WriteLog(redirect,ERROR,"redirectTo can't be empty");
 			return false;
 		}
 	}
@@ -519,14 +519,44 @@ bool CAction::ProcRedirect(vector<pair<string,string> > &vt_param,string &errInf
 
 	if(success && action.compare("add") == 0)
 	{
-		AddRedirect(redirectFrom,redirectTo,virtualHost);
+		//AddRedirect(redirectFrom,redirectTo,virtualHost);
+		vector<string> vt_from;
+		vector<string> vt_to;
+		SplitByComas(redirectFrom,vt_from);
+		SplitByComas(redirectTo,vt_to);
+		if(vt_from.size() != vt_to.size() && vt_to.size() != 1)
+		{
+			success = false;
+			errInfo.append("the count of the param is not valid");
+			WriteLog(redirect,ERROR,"the count of the param is not valid");
+		}
+		if(vt_to.size() == 1)
+		{
+			for(int i = 0; i < vt_from.size(); i++)
+			{
+				AddRedirect(vt_from[i],vt_to[0],virtualHost);
+			}
+		}
+		else
+		{
+			for(int i = 0; i < vt_from.size(); i++)
+			{
+				AddRedirect(vt_from[i],vt_to[i],virtualHost);
+			}
+		}
 	}
 	else if(success && action.compare("delete") == 0)
 	{
-		DeleteRedirect(redirectFrom,virtualHost);
+		//DeleteRedirect(redirectFrom,virtualHost);
+		vector<string> vt_from;
+		SplitByComas(redirectFrom,vt_from);
+		for(int i = 0; i < vt_from.size();i++)
+		{
+			DeleteRedirect(vt_from[i],virtualHost);
+		}
 	}
-
-	success = WriteFile(virtualHost,errInfo,redirect);
+	if(success)
+		success = WriteFile(virtualHost,errInfo,redirect);
 
 	if(success)
 		WriteParam(redirect,vt_param,"success");
@@ -609,8 +639,8 @@ bool CAction::ProcMineType(vector<pair<string,string> > &vt_param,string &errInf
 	{
 		DeleteMineType(mineType,virtualHost);
 	}
-
-	success = WriteFile(virtualHost,errInfo,mine);
+	if(success)
+		success = WriteFile(virtualHost,errInfo,mine);
 	if(success)
 		WriteParam(redirect,vt_param,"success");
 	else

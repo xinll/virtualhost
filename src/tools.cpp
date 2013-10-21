@@ -174,8 +174,11 @@ void Split(string source,vector<string> &result)
 			data++;
 		}
 	}
-	string tmp(firstCharNotSpace,data - firstCharNotSpace); //换行符
-	result.push_back(tmp);
+	if(firstCharNotSpace + 1 != data)
+	{
+		string tmp(firstCharNotSpace,data - firstCharNotSpace); //换行符
+		result.push_back(tmp);
+	}
 }
 
 bool IsEqualString(string first,string second)
@@ -420,4 +423,26 @@ void WriteParam(zlog_category_t* c,vector<pair<string,string> > &vt_param,string
 	char params[4096];
 	sprintf(params,"%s",param.c_str());
 	WriteLog(c,INFO,params);
+}
+
+void SplitByComas(string &source,vector<string> &result)
+{
+	const char* data = source.c_str();
+	const char* tmp = data;
+	while(*data != '\0')
+	{
+		if(*data == 44)
+		{
+			string t(tmp,data - tmp);
+			result.push_back(t);
+			tmp = ++data;
+			continue;
+		}
+		data++;
+	}
+	if(tmp + 1 != data)
+	{
+		string t(tmp,data - tmp);
+		result.push_back(t);
+	}
 }

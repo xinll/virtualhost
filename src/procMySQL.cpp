@@ -69,11 +69,11 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 			continue;
 		}
 
-		if(IsEqualString(vt_param[i].first,MYSQLSERVER))
+	/*	if(IsEqualString(vt_param[i].first,MYSQLSERVER))
 		{
 			mySQLServer = vt_param[i].second;
 			continue;
-		}
+		}*/
 		if(IsEqualString(vt_param[i].first,FTPSERVER))
 		{
 			ftpServer = vt_param[i].second;
@@ -90,17 +90,19 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 			ftpPort = atoi(tmp.c_str());
 			continue;
 		}
-		if(IsEqualString(vt_param[i].first,MYSQLBASE))
+	/*	if(IsEqualString(vt_param[i].first,MYSQLBASE))
 		{
 			mySQLDataBase  = vt_param[i].second;
 			continue;
-		}
+		}*/
 		if(IsEqualString(vt_param[i].first,FTPDIR))
 		{
 			ftpDir = vt_param[i].second;
 			continue;
 		}
 	}
+	mySQLDataBase = mySQLUserName;
+
 	if(ftpUserName.empty() || mySQLUserName.empty() || mySQLDataBase.empty())
 	{
 		//参数错误
@@ -198,11 +200,11 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 			continue;
 		}
 
-		if(IsEqualString(vt_param[i].first,MYSQLSERVER))
+/*		if(IsEqualString(vt_param[i].first,MYSQLSERVER))
 		{
 			mySQLServer = vt_param[i].second;
 			continue;
-		}
+		}*/
 		if(IsEqualString(vt_param[i].first,FTPSERVER))
 		{
 			ftpServer = vt_param[i].second;
@@ -219,11 +221,11 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 			ftpPort = atoi(tmp.c_str());
 			continue;
 		}
-		if(IsEqualString(vt_param[i].first,MYSQLBASE))
+/*		if(IsEqualString(vt_param[i].first,MYSQLBASE))
 		{
 			mySQLDataBase  = vt_param[i].second;
 			continue;
-		}
+		}*/
 		if(IsEqualString(vt_param[i].first,FTPDIR))
 		{
 			ftpDir = vt_param[i].second;

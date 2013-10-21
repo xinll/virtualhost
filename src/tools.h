@@ -35,3 +35,5 @@ bool UpLoadFile(const char* ftpServer,const char* ftpUser,const char* ftpPwd,con
 void RmDir(const char* path);
 
 void WriteParam(zlog_category_t *c,vector<pair<string,string> > &vt_param,string success);
+
+void SplitByComas(string &source,vector<string> &result);
