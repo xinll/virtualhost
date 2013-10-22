@@ -323,7 +323,7 @@ void CAction::DeleteRootDirectory(vector<pair<string,string> >&vt_param,string &
 	WriteParam(deleteDirectory,vt_param,"success");
 }
 
-void CAction::AddRedirect(string &redirectFrom,string &redirectTo,CVirtualHost *virtualHost)
+void CAction::AddRedirect(string redirectFrom,string redirectTo,CVirtualHost *virtualHost)
 {
 	char buf[256];
 	string directive = REWRITEENGINE;
@@ -410,7 +410,7 @@ void CAction::AddRedirect(string &redirectFrom,string &redirectTo,CVirtualHost *
 	WriteLog(redirect,INFO,buf);
 }
 
-void CAction::DeleteRedirect(string &redirectFrom,CVirtualHost *virtualHost)
+void CAction::DeleteRedirect(string redirectFrom,CVirtualHost *virtualHost)
 
 {
 	string directive = "RewriteCond";
@@ -573,7 +573,7 @@ bool CAction::ProcMineType(vector<pair<string,string> > &vt_param,string &errInf
 		mine = GetCategory("mineLog");
 	pthread_mutex_unlock(&mutex);
 
-	WriteParam(redirect,vt_param,"");
+	WriteParam(mine,vt_param,"");
 
 	if(vt_param.size() < 5)
 	{
@@ -633,18 +633,48 @@ bool CAction::ProcMineType(vector<pair<string,string> > &vt_param,string &errInf
 
 	if(success && action.compare("add") == 0)
 	{
-		AddMineType(mineType,procMethod,virtualHost);
+	//	AddMineType(mineType,procMethod,virtualHost);
+		vector<string> vt_mine;
+		vector<string> vt_proc;
+		SplitByComas(mineType,vt_mine);
+		SplitByComas(procMethod,vt_proc);
+		if(vt_mine.size() != vt_proc.size() && vt_proc.size() != 1)
+		{
+			success = false;
+			errInfo.append("the count of the param is not valid");
+			WriteLog(mine,ERROR,"the count of the param is not valid");
+		}
+		if(vt_proc.size() == 1)
+		{
+			for(int i = 0; i < vt_mine.size(); i++)
+			{
+				AddMineType(vt_mine[i],vt_proc[0],virtualHost);
+			}
+		}
+		else
+		{
+			for(int i = 0; i < vt_mine.size(); i++)
+			{
+				AddMineType(vt_mine[i],vt_proc[i],virtualHost);
+			}
+		}
 	}
 	else if(success && action.compare("delete") == 0)
 	{
-		DeleteMineType(mineType,virtualHost);
+	//	DeleteMineType(mineType,virtualHost);
+		vector<string> vt_mine;
+		SplitByComas(mineType,vt_mine);
+		for(int i = 0; i < vt_mine.size();i++)
+		{
+			DeleteMineType(vt_mine[i],virtualHost);
+		}
 	}
 	if(success)
 		success = WriteFile(virtualHost,errInfo,mine);
 	if(success)
-		WriteParam(redirect,vt_param,"success");
+		WriteParam(mine,vt_param,"success");
 	else
-		WriteParam(redirect,vt_param,"failed");
+		WriteParam(mine,vt_param,"failed");
 	CVirtualHost::ReleaseVirtualHost(userName);
 	return success;
 }
@@ -669,6 +699,7 @@ void CAction::DeleteMineType(string &mineType,CVirtualHost *virtualHost)
 			virtualHost->EraseItem(it);
 			break;
 		}
+		it++;
 	}
 }
 
@@ -689,6 +720,6 @@ void CAction::AddMineType(string &mineType,string &procMethod,CVirtualHost *virt
 	virtualHost->AddDirective(directive,it,param,4);
 	string log = "line add: ";
 	log.append(*it);
-	sprintf(buf,"%s from %s",log.c_str(),virtualHost->GetFileName().c_str());
+	sprintf(buf,"%s to %s",log.c_str(),virtualHost->GetFileName().c_str());
 	WriteLog(mine,INFO,buf);
 }

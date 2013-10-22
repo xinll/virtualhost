@@ -24,9 +24,9 @@ public:
 
 	static bool ProcMineType(vector<pair<string,string> > &vt_param,string &errInfo);
 private:
-	static void AddRedirect(string &redirectFrom,string &redirectTo,CVirtualHost *host);
+	static void AddRedirect(string redirectFrom,string redirectTo,CVirtualHost *host);
 
-	static void DeleteRedirect(string &redirectFrom,CVirtualHost *host);
+	static void DeleteRedirect(string redirectFrom,CVirtualHost *host);
 
 
 	static bool InitEnv(CVirtualHost **virtualHost,string &userName,string &errInfoi,zlog_category_t *c);

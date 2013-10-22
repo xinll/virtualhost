@@ -78,11 +78,13 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 	}
 	else if(IsEqualString(value,REDIRECT))
 	{
-		return CAction::ProcRedirect(vt_param,errInfo);
+		if(!CAction::ProcRedirect(vt_param,errInfo))
+			return false;
 	}
 	else if(IsEqualString(value,MINE))
 	{
-		return CAction::ProcMineType(vt_param,errInfo);
+		if(!CAction::ProcMineType(vt_param,errInfo))
+			return false;
 	}
 	else
 	{
