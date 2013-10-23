@@ -39,7 +39,7 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 	string ftpUserName,ftpPw,mySQLUserName,mySQLPw,mySQLDataBase;
 	int ftpPort = 21;
 	string ftpServer = "127.0.0.1";
-	string mySQLServer = "127.0.0.1";
+	string mySQLServer = "localhost"; //"127.0.0.1";
 	string ftpDir = "/";
 	time_t t = time(NULL);
 	char buf[100];
@@ -174,9 +174,10 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 	string ftpUserName,ftpPw,mySQLUserName,mySQLPw,mySQLDataBase,bakFileName;
 	int ftpPort = 21;
 	string ftpServer = "127.0.0.1";
-	string mySQLServer = "127.0.0.1";
+	string mySQLServer = "localhost"; //"127.0.0.1";
 	int size = vt_param.size();
 	string ftpDir = "/";
+	string dbStrSize = "";
 	for(int i = 2; i < size; i++)
 	{
 		if(IsEqualString(vt_param[i].first,FTPUSER))
@@ -200,11 +201,6 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 			continue;
 		}
 
-/*		if(IsEqualString(vt_param[i].first,MYSQLSERVER))
-		{
-			mySQLServer = vt_param[i].second;
-			continue;
-		}*/
 		if(IsEqualString(vt_param[i].first,FTPSERVER))
 		{
 			ftpServer = vt_param[i].second;
@@ -221,14 +217,14 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 			ftpPort = atoi(tmp.c_str());
 			continue;
 		}
-/*		if(IsEqualString(vt_param[i].first,MYSQLBASE))
-		{
-			mySQLDataBase  = vt_param[i].second;
-			continue;
-		}*/
 		if(IsEqualString(vt_param[i].first,FTPDIR))
 		{
 			ftpDir = vt_param[i].second;
+			continue;
+		}
+		if(IsEqualString(vt_param[i].first,MYSQLSIZE))
+		{
+			dbStrSize = vt_param[i].second;
 			continue;
 		}
 	}
@@ -283,6 +279,21 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 	{
 		WriteLog(c,INFO,"success to restore the database");
 		WriteParam(c,vt_param,"success");
+		if(!dbStrSize.empty())
+		{
+			vector<pair<string,string> > tmp;
+			tmp.push_back(vt_param[0]);
+			tmp.push_back(vt_param[1]);
+			pair<string,string> p;
+			p.first = DBNAME;
+			p.second = mySQLUserName;
+			tmp.push_back(p);
+			p.first = MYSQLSIZE;
+			p.second = dbStrSize;
+			tmp.push_back(p);
+			if(!RecordLimit(tmp,errInfo,true))
+				return false;
+		}
 		return true;
 	}
 	else
@@ -294,7 +305,7 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 }
 
 //读取数据库大小
-long long GetDataBaseSize(string host,string user,string pwd,string db,unsigned int port = 3306)
+long long GetDataBaseSize(string host,string user,string pwd,string db,unsigned int port)
 {
 	MYSQL mysql;
 	
@@ -324,12 +335,14 @@ long long GetDataBaseSize(string host,string user,string pwd,string db,unsigned 
 	
 	while((row = mysql_fetch_row(result)))
 	{
-		size += strtoll(row[6],NULL,0);
-		size += strtoll(row[8],NULL,0);
+		if(row[6] != NULL)
+			size += strtoll(row[6],NULL,0);
+		if(row[8] != NULL)
+			size += strtoll(row[8],NULL,0);
 	}
 	mysql_free_result(result);
 	mysql_close(&mysql);
-	return size;
+	return size/(1024*1024);
 }
 
 bool LimitMySQLSize(string host,string user,string pwd,string ftpName,string db,long long maxsize)
@@ -341,7 +354,9 @@ bool LimitMySQLSize(string host,string user,string pwd,string ftpName,string db,
 	
 	if(!mysql_real_connect(&mysql,host.c_str(),user.c_str(),pwd.c_str(),db.c_str(),0,NULL,0))
 	{
-		WriteLog(c,ERROR,"con't connect the mysql server");
+		char err[1024];
+		sprintf(err,"can't connect the mysql server:%s",mysql_error(&mysql));
+		WriteLog(c,ERROR,err);
 		return false;
 	}
 
@@ -349,11 +364,13 @@ bool LimitMySQLSize(string host,string user,string pwd,string ftpName,string db,
 	if(mysql_query(&mysql,query.c_str()))
 	{
 		mysql_close(&mysql);
+		WriteLog(c,ERROR,"SHOW TABLE STATUS FAILED");
 		return false;
 	}
 	MYSQL_RES *result = mysql_store_result(&mysql);
 	if(result == NULL)
 	{
+		WriteLog(c,ERROR,"Store Result Failed");
 		mysql_close(&mysql);
 		return false;
 	}
@@ -372,7 +389,7 @@ bool LimitMySQLSize(string host,string user,string pwd,string ftpName,string db,
 	mysql_free_result(result);
 	
 	bool success = false;
-	if(size/1024 >= maxsize) //转化为M
+	if(size/(1024*1024) >= maxsize) //转化为M
 	{
 		char tmpName[256];
 		char tmpdb[256];
@@ -408,6 +425,9 @@ bool LimitMySQLSize(string host,string user,string pwd,string ftpName,string db,
 		}
 		else
 		{
+			char err[256];
+			sprintf(err,"%s",mysql_error(&mysql));
+			WriteLog(c,ERROR,err);
 			strcat(tmpQuery," failed");
 			WriteLog(c,ERROR,tmpQuery);
 		}
@@ -422,7 +442,7 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 	static vector<string> vt_conf;
 
 	string db,size;
-	string ip = "127.0.0.1";
+	string ip = "localhost"; //"127.0.0.1";
 	int length = vt_param.size();
 	for(int i = 2; i < length; i++)
 	{
@@ -470,6 +490,7 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 				return false;
 			}
 		}
+		pthread_mutex_unlock(&mutex);
 		vector<string>::iterator it = vt_conf.begin();
 		vector<string> vt_tmp;
 		bool success = false;
@@ -483,7 +504,7 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 			}
 			if(vt_tmp[0].compare(db) == 0)
 			{
-				long long dbSize = strtoll(vt_tmp[0].c_str(),NULL,10);
+				long long dbSize = strtoll(vt_tmp[1].c_str(),NULL,10);
 				
 				Config config;
 				config.LoadConfigFile();
@@ -492,7 +513,7 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 				break;
 			}
 		}
-		pthread_mutex_unlock(&mutex);
+//		pthread_mutex_unlock(&mutex);
 		if(!success)
 		{
 			errInfo.append("revoke or grant failed");
@@ -521,7 +542,6 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 				pthread_mutex_unlock(&mutex);
 				return false;
 			}
-			syslog(LOG_INFO,"hello world");
 			fwrite(param.c_str(),param.size(),1,fp);
 			fclose(fp);
 			vt_conf.push_back(param);

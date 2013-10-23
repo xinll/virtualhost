@@ -8,6 +8,7 @@
 #include "sqlOperation.h"
 #include "procMySQL.h"
 #include "tools.h"
+#include "config.h"
 
 bool ProcSql(vector<pair<string,string> > vt_param,string &errInfo)
 {
@@ -39,6 +40,16 @@ bool ProcSql(vector<pair<string,string> > vt_param,string &errInfo)
 	else if(IsEqualString(value,CHECKMYSQLSIZESTATE))
 	{
 		return RecordLimit(vt_param,errInfo,true);//立即检查
+	}
+	else if(IsEqualString(value,MYSQLGETSIZE))
+	{
+		Config config;
+		config.LoadConfigFile();
+		string pwd = config.GetValue("MYSQLPWD");
+	    long long size = GetDataBaseSize("localhost","root",pwd,vt_param[2].second);
+		char result[2014];
+		sprintf(result,"%lld",size);
+		errInfo = result;	
 	}
 	else
 	{

@@ -123,3 +123,5 @@ typedef	int					MC_SOCKET;
 
 #define MINETYPE            "mineType"
 #define MINEPROCESS         "mineMethod"
+
+#define MYSQLGETSIZE        "getSize"

@@ -343,7 +343,7 @@ void TimerAction(int signo)
 		SizeParam p;
 		if(vt_sizeparam.size() < 2)
 			continue;
-		p.ip = "127.0.0.1";
+		p.ip = "localhost"; //""127.0.0.1";
 		p.name = "root";
 		Config config;
 		config.LoadConfigFile();
