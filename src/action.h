@@ -23,17 +23,19 @@ public:
 	static bool ProcRedirect(vector<pair<string,string> >&vt_param,string &errInfo);
 
 	static bool ProcMineType(vector<pair<string,string> > &vt_param,string &errInfo);
+
+	static bool ProcDirectoryAccess(vector<pair<string,string> > &vt_param,string &errInfo);
+
 private:
 	static void AddRedirect(string redirectFrom,string redirectTo,CVirtualHost *host);
 
 	static void DeleteRedirect(string redirectFrom,CVirtualHost *host);
 
-
-	static bool InitEnv(CVirtualHost **virtualHost,string &userName,string &errInfoi,zlog_category_t *c);
+	static bool InitEnv(CVirtualHost **virtualHost,string &userName,string &errInfoi,char *category);
 
 	static void DeleteMineType(string &mineType,CVirtualHost *virtualHost);
 
 	static void AddMineType(string &mineType,string &procMethod,CVirtualHost *virtualHost);
 
-	static bool WriteFile(CVirtualHost *virtualHost,string &errInfo,zlog_category_t *c);
+	static bool WriteFile(CVirtualHost *virtualHost,string &errInfo,char *category);
 };

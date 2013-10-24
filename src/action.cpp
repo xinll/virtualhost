@@ -12,16 +12,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include "config.h"
-#include <stdio.h>
 
-zlog_category_t *errorDocument = NULL;
-zlog_category_t *filePermission = NULL;
-zlog_category_t *deleteDirectory = NULL;
-zlog_category_t *redirect = NULL;
-zlog_category_t *mine = NULL;
-extern pthread_mutex_t mutex;
+char *errorDocument = "404Log";
+char *filePermission = "filePermissionLog";
+char *deleteDirectory = "deleteDirectoryLog";
+char *redirect = "redirectLog";
+char *mine = "mineLog";
+//extern pthread_mutex_t mutex;
 
-bool CAction::WriteFile(CVirtualHost *virtualHost,string &errInfo,zlog_category_t *c)
+bool CAction::WriteFile(CVirtualHost *virtualHost,string &errInfo,char *category)
 {
 	string userName = virtualHost->GetFileName();
 	if(!virtualHost->SaveFile())
@@ -30,20 +29,20 @@ bool CAction::WriteFile(CVirtualHost *virtualHost,string &errInfo,zlog_category_
 		errInfo.append(err);
 		char tmp[256];
 		strcpy(tmp,err.c_str());
-		WriteLog(c,ERROR,tmp);
+		WriteLog(category,ERROR,tmp);
 		if(RestoreConf(userName))
 		{
 			errInfo.append("restore the config file failed:");
 			errInfo.append(userName);
 			char tmp[256];
 			sprintf(tmp,"restore the config file failed:%s.conf",userName.c_str());
-			WriteLog(c,ERROR,tmp);
+			WriteLog(category,ERROR,tmp);
 		}
 		return false;
 	}
 	return true;
 }
-bool CAction::InitEnv(CVirtualHost **virtualHost,string &userName,string &errInfo,zlog_category_t *c)
+bool CAction::InitEnv(CVirtualHost **virtualHost,string &userName,string &errInfo,char *category)
 {
 	 (*virtualHost) = CVirtualHost::GetVirtualHost(userName);
 	if((*virtualHost) == NULL)
@@ -52,7 +51,7 @@ bool CAction::InitEnv(CVirtualHost **virtualHost,string &userName,string &errInf
 		errInfo.append(userName);
 		char err[256];
 		sprintf(err,"the config file is using %s.conf",userName.c_str());
-		WriteLog(c,ERROR,err);
+		WriteLog(category,ERROR,err);
 		return false;
 	}
 
@@ -63,7 +62,7 @@ bool CAction::InitEnv(CVirtualHost **virtualHost,string &userName,string &errInf
 		char err[256];
 
 		sprintf(err,"backup the config file failed:%s.conf",userName.c_str());
-		WriteLog(c,ERROR,err);
+		WriteLog(category,ERROR,err);
 
 		return false;
 	}
@@ -74,7 +73,7 @@ bool CAction::InitEnv(CVirtualHost **virtualHost,string &userName,string &errInf
 		errInfo.append(err);
 		char tmp[256];
 		strcpy(tmp,err.c_str());
-		WriteLog(c,ERROR,tmp);
+		WriteLog(category,ERROR,tmp);
 		return false;
 	}
 	return true;
@@ -82,11 +81,6 @@ bool CAction::InitEnv(CVirtualHost **virtualHost,string &userName,string &errInf
 
 bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
 {
-	pthread_mutex_lock(&mutex);
-	if(!errorDocument)
-		errorDocument = GetCategory("404Log");
-	pthread_mutex_unlock(&mutex);
-
 	WriteParam(errorDocument,vt_param,"");
 
 	if(vt_param.size() < 5)
@@ -165,11 +159,6 @@ bool CAction::ProcErrorDocument(vector<pair<string,string> > &vt_param,string &e
 
 bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &errInfo)
 {	
-	pthread_mutex_lock(&mutex);
-	if(!filePermission)
-		filePermission = GetCategory("filePermissionLog");
-	pthread_mutex_unlock(&mutex);
-
 	WriteParam(filePermission,vt_param,"");
 
 	if(vt_param.size() < 4)
@@ -296,11 +285,6 @@ bool CAction::ProcFilePermission(vector<pair<string,string> > &vt_param,string &
 
 void CAction::DeleteRootDirectory(vector<pair<string,string> >&vt_param,string &errInfo)
 {
-	pthread_mutex_lock(&mutex);
-	if(!deleteDirectory)
-		deleteDirectory = GetCategory("deleteDirectoryLog");
-	pthread_mutex_unlock(&mutex);
-
 	WriteParam(deleteDirectory,vt_param,"");
 	if(vt_param.size() < 3)
 	{
@@ -454,11 +438,6 @@ void CAction::DeleteRedirect(string redirectFrom,CVirtualHost *virtualHost)
 
 bool CAction::ProcRedirect(vector<pair<string,string> > &vt_param,string &errInfo)
 {
-	pthread_mutex_lock(&mutex);
-	if(!redirect)
-		redirect = GetCategory("redirectLog");
-	pthread_mutex_unlock(&mutex);
-
 	WriteParam(redirect,vt_param,"");
 
 	if(vt_param.size() < 5)
@@ -519,7 +498,6 @@ bool CAction::ProcRedirect(vector<pair<string,string> > &vt_param,string &errInf
 
 	if(success && action.compare("add") == 0)
 	{
-		//AddRedirect(redirectFrom,redirectTo,virtualHost);
 		vector<string> vt_from;
 		vector<string> vt_to;
 		SplitByComas(redirectFrom,vt_from);
@@ -547,7 +525,6 @@ bool CAction::ProcRedirect(vector<pair<string,string> > &vt_param,string &errInf
 	}
 	else if(success && action.compare("delete") == 0)
 	{
-		//DeleteRedirect(redirectFrom,virtualHost);
 		vector<string> vt_from;
 		SplitByComas(redirectFrom,vt_from);
 		for(int i = 0; i < vt_from.size();i++)
@@ -568,11 +545,6 @@ bool CAction::ProcRedirect(vector<pair<string,string> > &vt_param,string &errInf
 
 bool CAction::ProcMineType(vector<pair<string,string> > &vt_param,string &errInfo)
 {
-	pthread_mutex_lock(&mutex);
-	if(!redirect)
-		mine = GetCategory("mineLog");
-	pthread_mutex_unlock(&mutex);
-
 	WriteParam(mine,vt_param,"");
 
 	if(vt_param.size() < 5)
@@ -633,7 +605,6 @@ bool CAction::ProcMineType(vector<pair<string,string> > &vt_param,string &errInf
 
 	if(success && action.compare("add") == 0)
 	{
-	//	AddMineType(mineType,procMethod,virtualHost);
 		vector<string> vt_mine;
 		vector<string> vt_proc;
 		SplitByComas(mineType,vt_mine);
@@ -661,7 +632,6 @@ bool CAction::ProcMineType(vector<pair<string,string> > &vt_param,string &errInf
 	}
 	else if(success && action.compare("delete") == 0)
 	{
-	//	DeleteMineType(mineType,virtualHost);
 		vector<string> vt_mine;
 		SplitByComas(mineType,vt_mine);
 		for(int i = 0; i < vt_mine.size();i++)
@@ -722,4 +692,9 @@ void CAction::AddMineType(string &mineType,string &procMethod,CVirtualHost *virt
 	log.append(*it);
 	sprintf(buf,"%s to %s",log.c_str(),virtualHost->GetFileName().c_str());
 	WriteLog(mine,INFO,buf);
+}
+
+bool CAction::ProcDirectoryAccess(vector<pair<string,string> > &vt_param,string &errInfo)
+{
+
 }

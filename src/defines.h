@@ -51,10 +51,10 @@ typedef	int					MC_SOCKET;
 #define COMTYPE             "comtype"
 #define NFUNC               "nfunc"
 
-//动作类型
+//动作类型,对应于comtype
 #define STRHOST             "host"
 #define STRSQL              "sql"
-//虚拟主机下具体功能
+//虚拟主机下具体功能,对应于nfunc
 #define ERRORDOCUMENT       "errorDocument"
 #define CREATEHOST          "createHost"
 #define FILEPERMISSION      "filePermission"
@@ -66,18 +66,22 @@ typedef	int					MC_SOCKET;
 #define CHECKMYSQLSIZESTATE "modifyMySQLLimitState"
 #define REDIRECT            "redirect"
 #define MINE                "mine"
+#define DIRECTORYPERMISSION "directoryAccess"
 
-//修改错误页面参数
+//目录IP访问限制
+#define ADDRESS             "ip"
+#define DIRECTORY           "directory"
+
+//修改错误页面参数,对应于errorDocument
 #define ERRORNMSTR          "errorNum"
 #define ERRORPAGE           "errorPage"
 #define USERNAME            "ftpName"
 
-//修改脚本权限参数
-#define DIRECTORY           "directory"
+//修改脚本权限参数,对应于filePermission
 #define PERMISSION          "permission"
-#define PERMISSION_FILE     "file"
+//#define PERMISSION_FILE     "file"
 
-//增加虚拟主机参数
+//增加虚拟主机参数,对应于createHost
 #define DEFAULTDOMAIN       "defaultDomain"
 #define MAXTRANS            "maxTrans"
 #define MAXCONN             "maxConn"
@@ -89,22 +93,22 @@ typedef	int					MC_SOCKET;
 #define MYSQLPW             "mySQLPw"
 #define FTPSERVER           "ftpServer"
 #define FTPPORT             "ftpPort"
-#define MYSQLSERVER         "mySQLServer"
+//#define MYSQLSERVER         "mySQLServer"
 #define MYSQLBAKNAME        "mySQLBakFileName"
-#define MYSQLBASE           "mySQLDataBase"
+//#define MYSQLBASE           "mySQLDataBase"
 #define FTPDIR              "ftpDir"
 
-#define USER_ROOT           "/var/www/virtual/"
-#define USER_SHELL          "/sbin/nologin"
-#define CONF_TPL            "vhost-conf.sample"
-#define CGI_TPL             "php-cgi.sample"
-#define SUPE_HOME           "/home/xinll/code/unix/superhome"
-#define PHPINI_TPL          "php.ini.sample"
+//#define USER_ROOT           "/var/www/virtual/"
+//#define USER_SHELL          "/sbin/nologin"
+//#define CONF_TPL            "vhost-conf.sample"
+//#define CGI_TPL             "php-cgi.sample"
+//#define SUPE_HOME           "/home/xinll/code/unix/superhome"
+//#define PHPINI_TPL          "php.ini.sample"
 
 #define SUCCESS             "10000:"
 #define PARAMEND            ".\r\n"
 
-
+//日志级别
 #define DEBUG               1
 #define INFO                2
 #define NOTICE              3
@@ -112,16 +116,20 @@ typedef	int					MC_SOCKET;
 #define ERROR               5
 #define FATAL               6
 
-#define MYSQLADDR           "MySQLServer"
+//限制数据库大小
+//#define MYSQLADDR           "MySQLServer"
 #define DBNAME              "dbName"
 #define MYSQLSIZE           "size"
 
+//301重定向
 #define REDIRECTFROM        "from"
 #define REDIRECTTO          "to"
 #define REWRITEENGINE       "RewriteEngine"
 #define ACTION              "action"
 
+//mime类型
 #define MINETYPE            "mineType"
 #define MINEPROCESS         "mineMethod"
 
+//获取MySQL数据库大小
 #define MYSQLGETSIZE        "getSize"

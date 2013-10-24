@@ -30,7 +30,7 @@ using namespace std;
 
 //全局变量，以后考虑怎么修改，尽量不要使用全局
 pthread_mutex_t mutex; 
-zlog_category_t *mainlog;
+char *mainlog = "mainLog";
 
 void* ProcSocket(void *arg);
 void  TimerAction(int signo);
@@ -126,15 +126,11 @@ int Children()
 
 	//初始化log环境
 	InitLog();
-	mainlog = GetCategory("main");
 
 	pthread_mutex_init(&mutex,NULL);
 
-	/*加载配置文件，读取数据*/
-	Config config;
-	config.LoadConfigFile();
 	//读取监听端口
-	string tmp = config.GetValue("LISTENPORT");
+	string tmp = GetEnvVar("LISTENPORT");
 	int port = 10000;
 	if(!tmp.empty())
 	{
@@ -345,9 +341,7 @@ void TimerAction(int signo)
 			continue;
 		p.ip = "localhost"; //""127.0.0.1";
 		p.name = "root";
-		Config config;
-		config.LoadConfigFile();
-		p.pwd = config.GetValue("MYSQLPWD");
+		p.pwd = GetEnvVar("MYSQLPWD");
 		p.ftpName = vt_sizeparam[0];
 		p.database = vt_sizeparam[0];
 		p.size = strtoll(vt_sizeparam[1].c_str(),NULL,0);
@@ -371,9 +365,7 @@ void InitSigAction()
 
 void InitTimer()
 {
-	Config config;
-	config.LoadConfigFile();
-	string value = config.GetValue("TIMERSECONDS");
+	string value = GetEnvVar("TIMERSECONDS");
 	if(value.empty())
 		value = "43200";
 	struct itimerval val;

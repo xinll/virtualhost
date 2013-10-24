@@ -20,6 +20,8 @@ bool ProcParam(char *param,vector<pair<string,string> > &vt_param);
 
 string MakeConfPath(string &ftpName);
 
+string GetEnvVar(string key);
+
 void Split(string source,vector<string> &result);
 
 bool IsEqualString(string first,string second);
@@ -34,6 +36,6 @@ bool UpLoadFile(const char* ftpServer,const char* ftpUser,const char* ftpPwd,con
 
 void RmDir(const char* path);
 
-void WriteParam(zlog_category_t *c,vector<pair<string,string> > &vt_param,string success);
+void WriteParam(char *c,vector<pair<string,string> > &vt_param,string success);
 
 void SplitByComas(string &source,vector<string> &result);

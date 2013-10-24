@@ -6,31 +6,55 @@
  ************************************************************************/
 #include "log.h"
 #include "defines.h"
-#include <syslog.h>
 #include <string.h>
+#include <pthread.h>
+#include <vector>
+#include <string>
+
+using namespace std;
+static pthread_mutex_t mutex_log;
+static vector<pair<string,zlog_category_t*> > vt_category;
 
 void InitLog()
 {
+	pthread_mutex_init(&mutex_log,NULL);
 	zlog_init("/usr/local/apache_conf/zlog.conf");
-//	openlog("apache_conf",LOG_PID | LOG_CONS,LOG_USER);
 }
 
 zlog_category_t* GetCategory(char* category)
 {
-	return zlog_get_category(category);
-//	return NULL;
+	zlog_category_t* ret = NULL;
+	pthread_mutex_lock(&mutex_log);
+	vector<pair<string,zlog_category_t*> >::iterator it = vt_category.begin();
+	for(; it != vt_category.end(); it++)
+	{
+		if(strcmp((*it).first.c_str(),category) == 0)
+		{
+			ret = (*it).second;
+			break;
+		}
+	}
+	if(ret == NULL)
+	{
+		ret = zlog_get_category(category);
+		pair<string,zlog_category_t*> p;
+		p.first = category;
+		p.second = ret;
+		vt_category.push_back(p);
+	}
+	pthread_mutex_unlock(&mutex_log);
+	return ret;
 }
 
 void UnInitLog()
 {
 	zlog_fini();
-//	closelog();
 }
 
 
-void WriteLog(zlog_category_t *c,int level,char *log)
-//void WriteLog(int* c,int level,char *log)
+void WriteLog(char *category,int level,char *log)
 {
+	zlog_category_t* c = GetCategory(category);
 	if(c)
 	{
 		switch(level)
@@ -55,25 +79,4 @@ void WriteLog(zlog_category_t *c,int level,char *log)
 				break;
 		}
 	}
-	/*	switch(level)
-		{
-			case DEBUG:
-				syslog(LOG_DEBUG,log,strlen(log));
-				break;
-			case INFO:
-				syslog(LOG_INFO,log,strlen(log));
-				break;
-			case NOTICE:
-				syslog(LOG_NOTICE,log,strlen(log));
-				break;
-			case WARN:
-				syslog(LOG_WARNING,log,strlen(log));
-				break;
-			case ERROR:
-				syslog(LOG_ERR,log,strlen(log));
-				break;
-			case FATAL:
-				syslog(LOG_EMERG,log,strlen(log));
-				break;
-		}*/
 }

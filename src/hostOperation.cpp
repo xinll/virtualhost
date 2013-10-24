@@ -86,6 +86,11 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 		if(!CAction::ProcMineType(vt_param,errInfo))
 			return false;
 	}
+	else if(IsEqualString(value,DIRECTORYPERMISSION))
+	{
+		if(!CAction::ProcDirectoryAccess(vt_param,errInfo))
+			return false;
+	}
 	else
 	{
 		errInfo.append("unknow operation:");

@@ -408,7 +408,7 @@ void RmDir(const char *path)
 	}
 }
 
-void WriteParam(zlog_category_t* c,vector<pair<string,string> > &vt_param,string success)
+void WriteParam(char *category,vector<pair<string,string> > &vt_param,string success)
 {
 	string param = "process the param:";
 	for(int i = 0; i < vt_param.size(); i++)
@@ -422,7 +422,7 @@ void WriteParam(zlog_category_t* c,vector<pair<string,string> > &vt_param,string
 	param.append(success);
 	char params[4096];
 	sprintf(params,"%s",param.c_str());
-	WriteLog(c,INFO,params);
+	WriteLog(category,INFO,params);
 }
 
 void SplitByComas(string &source,vector<string> &result)

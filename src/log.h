@@ -12,4 +12,6 @@ void UnInitLog();
 
 zlog_category_t* GetCategory(char* category);
 
-void WriteLog(zlog_category_t *c,int level,char *log);
+//void WriteLog(zlog_category_t *c,int level,char *log);
+
+void WriteLog(char *category,int level,char *log);
