@@ -38,4 +38,20 @@ private:
 	static void AddMineType(string &mineType,string &procMethod,CVirtualHost *virtualHost);
 
 	static bool WriteFile(CVirtualHost *virtualHost,string &errInfo,char *category);
+
+	static void DeleteNodeDirective(vector<string>::iterator it,string &directive,vector<string> vt_param,CVirtualHost *virtualHost);
+
+	static bool AddAccess(string &ip,string &dir,CVirtualHost *virtualHost);
+
+	static void AddAccessIpEmpty(string &dir,CVirtualHost *virtualHost);
+
+	static void AddAccessIpNotEmpty(string &dir,CVirtualHost *virtualHost,string &ip);
+
+	static void AddAccessDirEmptyIpEmpty(CVirtualHost *host);
+
+	static void AddAccessDirNotEmptyIpEmpty(CVirtualHost *host,string &dir);
+
+	static void AddAccessDirEmptyIpNotEmpty(CVirtualHost *host,string &ip);
+
+	static void AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *host,string &ip,string &dir);
 };

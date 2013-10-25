@@ -233,7 +233,10 @@ vector<string>::iterator CVirtualHost::FindNodeDirective(vector<string>::iterato
 			it++;
 		vt_tmp.clear();
 	}
-	return it;
+	if(exist)
+		return it;
+	else
+		return vt_conf.end();
 }
 
 vector<string>::iterator CVirtualHost::EraseItem(vector<string>::iterator it)

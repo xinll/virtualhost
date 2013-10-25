@@ -140,8 +140,26 @@ void Split(string source,vector<string> &result)
 			
 			if(marks && (*data == 32 || * data == 9))
 			{
-				string tmp(firstCharNotSpace,data - firstCharNotSpace);
-				result.push_back(tmp);
+				string t;
+				if(*(data-1) == '>')
+				{
+					if(*(data - 2) == '/')
+					{
+						string tmp(firstCharNotSpace,data - firstCharNotSpace - 2);
+						t = tmp;
+					}
+					else
+					{
+						string tmp(firstCharNotSpace,data - firstCharNotSpace - 1);
+						t = tmp;
+					}
+				}
+				else
+				{
+					string tmp(firstCharNotSpace,data - firstCharNotSpace);
+					t = tmp;
+				}
+				result.push_back(t);
 				marks = false;
 				firstCharNotSpace = data;
 			}
@@ -161,8 +179,27 @@ void Split(string source,vector<string> &result)
 		}
 		else if((*data == 32 || *data == 9) && data != firstCharNotSpace)
 		{
-			string dest(firstCharNotSpace,data - firstCharNotSpace);
-			result.push_back(dest);
+			string t;
+			if(*(data-1) == '>')
+			{
+				if(*(data - 2) == '/')
+				{
+					string tmp(firstCharNotSpace,data - firstCharNotSpace - 2);
+					t = tmp;
+				}
+				else
+				{
+					string tmp(firstCharNotSpace,data - firstCharNotSpace - 1);
+					t = tmp;
+				}
+			}
+			else
+			{
+				string tmp(firstCharNotSpace,data - firstCharNotSpace);
+				t = tmp;
+			}
+		//	string dest(firstCharNotSpace,data - firstCharNotSpace);
+			result.push_back(t);
 			data++;
 			firstCharNotSpace = data;
 			preIsSpace = true;
@@ -175,9 +212,28 @@ void Split(string source,vector<string> &result)
 		}
 	}
 	if(firstCharNotSpace + 1 != data)
-	{
-		string tmp(firstCharNotSpace,data - firstCharNotSpace); //换行符
-		result.push_back(tmp);
+	{	
+		string t;
+		if(*(data-1) == '>')
+		{
+			if(*(data - 2) == '/')
+			{
+				string tmp(firstCharNotSpace,data - firstCharNotSpace - 2);
+				t = tmp;
+			}
+			else
+			{
+				string tmp(firstCharNotSpace,data - firstCharNotSpace - 1);
+				t = tmp;
+			}
+		}
+		else
+		{
+			string tmp(firstCharNotSpace,data - firstCharNotSpace);
+			t = tmp;
+		}
+	//	string tmp(firstCharNotSpace,data - firstCharNotSpace); //换行符
+		result.push_back(t);
 	}
 }
 
