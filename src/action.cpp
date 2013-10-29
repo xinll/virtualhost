@@ -441,15 +441,13 @@ bool CAction::ProcRedirect(vector<pair<string,string> > &vt_param,string &errInf
 {
 	WriteParam(redirect,vt_param,"");
 
-	if(vt_param.size() < 5)
+	if(vt_param.size() < 4)
 	{
 		errInfo.append("too less param.");
 		return false;
 	}
-	string redirectFrom = "";
-	string redirectTo = "";
 	string userName;
-	string action;
+	string url = "";
 
 	//解析参数，分别赋值
 	vector<pair<string,string> >::iterator it = vt_param.begin();
@@ -462,75 +460,47 @@ bool CAction::ProcRedirect(vector<pair<string,string> > &vt_param,string &errInf
 			userName = (*it).second;
 			continue;
 		}
-		if((*it).first.compare(REDIRECTFROM) == 0)
+		if((*it).first.compare(URL) == 0)
 		{
-			redirectFrom = (*it).second;
-			continue;
-		}
-		if((*it).first.compare(REDIRECTTO) == 0)
-		{
-			redirectTo = (*it).second;
-			continue;
-		}
-		if((*it).first.compare(ACTION) == 0)
-		{
-			action = (*it).second;
+			url	= (*it).second;
 			continue;
 		}
 	}
-	if(action.compare("add") == 0)
+
+	if(userName.empty() || url.empty())
 	{
-		if(redirectTo.empty())
-		{
-			errInfo.append("redirectTo can't be empty");
-			WriteLog(redirect,ERROR,"redirectTo can't be empty");
-			return false;
-		}
-	}
-	if(redirectFrom.empty() || userName.empty() || action.empty())
-	{
-		errInfo.append("ftpName or from or or action not valid");
-		WriteLog(redirect,ERROR,"ftpName or redirectfrom or action invalid");
+		errInfo.append("ftpName or url not valid");
+		WriteLog(redirect,ERROR,"ftpName or url invalid");
 		return false;
 	}
 
 	CVirtualHost *virtualHost;
 	bool success = InitEnv(&virtualHost,userName,errInfo,redirect);
 
-	if(success && action.compare("add") == 0)
+	if(success)
 	{
+		vector<string> vt_url;
 		vector<string> vt_from;
-		vector<string> vt_to;
-		SplitByComas(redirectFrom,vt_from);
-		SplitByComas(redirectTo,vt_to);
-		if(vt_from.size() != vt_to.size() && vt_to.size() != 1)
+		vector<string> vt_tmp;
+		string to = "";
+		SplitByComas(url,vt_url,';');
+		int url_size = vt_url.size();
+		for(int i = 0; i < url_size; i++)
 		{
-			success = false;
-			errInfo.append("the count of the param is not valid");
-			WriteLog(redirect,ERROR,"the count of the param is not valid");
-		}
-		if(vt_to.size() == 1)
-		{
-			for(int i = 0; i < vt_from.size(); i++)
+			vt_tmp.clear();
+			SplitByComas(vt_url[i],vt_tmp,':');
+			vt_from.clear();	
+			SplitByComas(vt_tmp[0],vt_from);
+			if(vt_tmp.size() > 1)
+				to = vt_tmp[1];
+			int size = vt_from.size();
+			for(int k = 0; k < size; k++)
 			{
-				AddRedirect(vt_from[i],vt_to[0],virtualHost);
+				if(!to.empty())
+					AddRedirect(vt_from[k],to,virtualHost);
+				else
+					DeleteRedirect(vt_from[k],virtualHost);
 			}
-		}
-		else
-		{
-			for(int i = 0; i < vt_from.size(); i++)
-			{
-				AddRedirect(vt_from[i],vt_to[i],virtualHost);
-			}
-		}
-	}
-	else if(success && action.compare("delete") == 0)
-	{
-		vector<string> vt_from;
-		SplitByComas(redirectFrom,vt_from);
-		for(int i = 0; i < vt_from.size();i++)
-		{
-			DeleteRedirect(vt_from[i],virtualHost);
 		}
 	}
 	if(success)
@@ -695,6 +665,76 @@ void CAction::AddMineType(string &mineType,string &procMethod,CVirtualHost *virt
 	WriteLog(mine,INFO,buf);
 }
 
+bool CAction::DirectoryAccess(string &action,string &ip,string &dir,CVirtualHost *virtualHost)
+{
+	string tmp ="";
+	bool allow = false;
+	if(action.compare("allow") == 0)
+		allow = true;
+	else
+		allow = false;
+	vector<string> vt_dir;
+	SplitByComas(dir,vt_dir);
+	vector<string> vt_ip;
+	SplitByComas(ip,vt_ip);
+	if(vt_dir.size() == 0)
+	{
+		if(vt_ip.size() == 0)
+		{
+			AddAccess(tmp,tmp,virtualHost,allow);
+		}
+		else
+		{
+			for(int i = 0; i < vt_ip.size(); i++)
+				AddAccess(vt_ip[i],tmp,virtualHost,allow);
+		}
+	}
+	else if(vt_dir.size() == 1)
+	{
+		if(vt_ip.size() == 0)
+		{
+			AddAccess(tmp,vt_dir[0],virtualHost,allow);
+		}
+		else
+		{
+			for(int i = 0; i < vt_ip.size(); i++)
+				AddAccess(vt_ip[i],vt_dir[0],virtualHost,allow);
+		}
+	}
+	else
+	{
+		if(vt_ip.size() == 0)
+		{
+			for(int i = 0; i < vt_dir.size(); i++)
+			{
+				AddAccess(tmp,vt_dir[i],virtualHost,allow);
+			}
+		}
+		else if(vt_ip.size() == 1)
+		{
+			for(int i = 0; i < vt_dir.size(); i++)
+			{
+				AddAccess(vt_ip[0],vt_dir[i],virtualHost,allow);
+			}
+		}
+		else
+		{
+			if(vt_ip.size() != vt_dir.size())
+			{
+				return false;
+			}
+			else
+			{
+				for(int i = 0; i < vt_dir.size(); i++)
+				{
+					AddAccess(vt_ip[i],vt_dir[i],virtualHost,allow);
+				}
+			}
+		}
+	}
+	return true;
+}
+
 bool CAction::ProcDirectoryAccess(vector<pair<string,string> > &vt_param,string &errInfo)
 {
 	WriteParam(directoryAccess,vt_param,"");
@@ -746,43 +786,57 @@ bool CAction::ProcDirectoryAccess(vector<pair<string,string> > &vt_param,string 
 
 	CVirtualHost *virtualHost;
 	bool success = InitEnv(&virtualHost,username,errInfo,directoryAccess);
-
+	
+	if(success)
+	{
+		success = DirectoryAccess(action,ip,dir,virtualHost);
+		if(!success)
+			errInfo.append("the directory or the ip  is not valid.");
+	}
+	if(success)
+		success = WriteFile(virtualHost,errInfo,mine);
+	if(success)
+		WriteParam(mine,vt_param,"success");
+	else
+		WriteParam(mine,vt_param,"failed");
+	CVirtualHost::ReleaseVirtualHost(username);
+	return success;
 }
 
-bool CAction::AddAccess(string &ip,string &dir,CVirtualHost *virtualHost)
+void CAction::AddAccess(string &ip,string &dir,CVirtualHost *virtualHost,bool allow)
 {
 	vector<string> vt_param;
 	if(ip.empty())
 	{
-		AddAccessIpEmpty(dir,virtualHost);
+		AddAccessIpEmpty(dir,virtualHost,allow);
 	}
 	else
 	{
-		AddAccessIpNotEmpty(dir,virtualHost,ip);
+		AddAccessIpNotEmpty(dir,virtualHost,ip,allow);
 	}
 }
 
-void CAction::AddAccessIpNotEmpty(string &dir,CVirtualHost *virtualHost,string &ip)
+void CAction::AddAccessIpNotEmpty(string &dir,CVirtualHost *virtualHost,string &ip,bool allow)
 {
 	if(dir.empty())
 	{
-		AddAccessDirEmptyIpNotEmpty(virtualHost,ip);
+		AddAccessDirEmptyIpNotEmpty(virtualHost,ip,allow);
 	}
 	else
 	{
-		AddAccessDirNotEmptyIpNotEmpty(virtualHost,ip,dir);
+		AddAccessDirNotEmptyIpNotEmpty(virtualHost,ip,dir,allow);
 	}
 }
 
-void CAction::AddAccessIpEmpty(string &dir,CVirtualHost *virtualHost)
+void CAction::AddAccessIpEmpty(string &dir,CVirtualHost *virtualHost,bool allow)
 {
 	if(dir.empty())
 	{
-		AddAccessDirEmptyIpEmpty(virtualHost);
+		AddAccessDirEmptyIpEmpty(virtualHost,allow);
 	}
 	else
 	{
-		AddAccessDirNotEmptyIpEmpty(virtualHost,dir);	
+		AddAccessDirNotEmptyIpEmpty(virtualHost,dir,allow);	
 	}
 }
 
@@ -800,13 +854,14 @@ void CAction::DeleteNodeDirective(vector<string>::iterator it,string &directive,
 	}		
 }
 
-void CAction::AddAccessDirEmptyIpEmpty(CVirtualHost *virtualHost)
+void CAction::AddAccessDirEmptyIpEmpty(CVirtualHost *virtualHost,bool allow)
 {
 	vector<string> vt_param;
 	string nodeName = "Directory";
 	vector<string>::iterator it = virtualHost->GetIterator();
 	while(1)
 	{
+		vt_param.clear();
 		it = virtualHost->FindNode(nodeName,vt_param,it);
 		if(it == virtualHost->GetEndIterator())
 			break;
@@ -818,18 +873,24 @@ void CAction::AddAccessDirEmptyIpEmpty(CVirtualHost *virtualHost)
 		DeleteNodeDirective(it,directive,vt_param,virtualHost);
 		it++;
 		directive = ORDER;
-		vt_param.push_back("deny,allow");
+		if(allow)
+			vt_param.push_back("deny,allow");
+		else
+			vt_param.push_back("allow,deny");
 		virtualHost->AddDirective(directive,it,vt_param,8);
 		it++;
 		vt_param.clear();
 		vt_param.push_back("from");
 		vt_param.push_back("all");
-		directive = DENY;
+		if(allow)	
+			directive = DENY;
+		else
+			directive = ALLOW;
 		virtualHost->AddDirective(directive,it,vt_param,8);
 	}
 }
 
-void CAction::AddAccessDirNotEmptyIpEmpty(CVirtualHost *virtualHost,string &dir)
+void CAction::AddAccessDirNotEmptyIpEmpty(CVirtualHost *virtualHost,string &dir,bool allow)
 {
 	vector<string> vt_param;
 	string nodeName = "Directory";
@@ -845,13 +906,19 @@ void CAction::AddAccessDirNotEmptyIpEmpty(CVirtualHost *virtualHost,string &dir)
 		vt_param.push_back(t);
 		it = virtualHost->AddNode(t,it,vt_param);
 		vt_param.clear();
-		vt_param.push_back("deny,allow");
+		if(allow)
+			vt_param.push_back("deny,allow");
+		else
+			vt_param.push_back("allow,deny");
 		virtualHost->AddDirective(directive,it,vt_param,8);
 		it++;
 		vt_param.clear();
 		vt_param.push_back("from");
 		vt_param.push_back("all");
-		directive = DENY;
+		if(allow)
+			directive = DENY;
+		else
+			directive = ALLOW;
 		virtualHost->AddDirective(directive,it,vt_param,8);
 	}
 	else
@@ -871,24 +938,31 @@ void CAction::AddAccessDirNotEmptyIpEmpty(CVirtualHost *virtualHost,string &dir)
 		}
 		it++;
 		vt_param.clear();
-		vt_param.push_back("deny,allow");
+		if(allow)
+			vt_param.push_back("deny,allow");
+		else
+			vt_param.push_back("allow,deny");
 		virtualHost->AddDirective(directive,it,vt_param,8);
 		it++;
 		vt_param.clear();
 		vt_param.push_back("from");
 		vt_param.push_back("all");
-		directive = DENY;
+		if(allow)
+			directive = DENY;
+		else
+			directive = ALLOW;
 		virtualHost->AddDirective(directive,it,vt_param,8);
 	}
 }
 
-void CAction::AddAccessDirEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip)
+void CAction::AddAccessDirEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip,bool allow)
 {
 	vector<string> vt_param;
 	string nodeName = "Directory";
 	vector<string>::iterator it = virtualHost->GetIterator();
 	while(1)
 	{
+		vt_param.clear();
 		it = virtualHost->FindNode(nodeName,vt_param,it);
 		if(it == virtualHost->GetEndIterator())
 			break;
@@ -896,15 +970,36 @@ void CAction::AddAccessDirEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip)
 		vector<string>::iterator it_tmp = virtualHost->FindNodeDirective(it,directive,vt_param);
 		if(it_tmp == virtualHost->GetEndIterator())
 		{
+			directive = ALLOW;
+			DeleteNodeDirective(it,directive,vt_param,virtualHost);	
+			directive = DENY;
+			DeleteNodeDirective(it,directive,vt_param,virtualHost);	
 			it++;
 			vt_param.clear();
-			vt_param.push_back("deny,allow");
+			directive = ORDER;
+			if(allow)
+				vt_param.push_back("deny,allow");
+			else
+				vt_param.push_back("allow,deny");
 			virtualHost->AddDirective(directive,it,vt_param,8);
 			it++;
+			if(allow)
+				directive = DENY;
+			else
+				directive = ALLOW;
+			vt_param.clear();
+			vt_param.push_back("from");
+			vt_param.push_back("all");
+			virtualHost->AddDirective(directive,it,vt_param,8);
+			it++;
+
 			vt_param.clear();
 			vt_param.push_back("from");
 			vt_param.push_back(ip);
-			directive = ALLOW;
+			if(allow)
+				directive = ALLOW;
+			else
+				directive = DENY;
 			virtualHost->AddDirective(directive,it,vt_param,8);
 			continue;
 		}
@@ -917,11 +1012,15 @@ void CAction::AddAccessDirEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip)
 			vt_param.push_back("from");
 			vt_param.push_back(ip);
 			vector<string>::iterator i = virtualHost->FindNodeDirective(it,directive,vt_param);
-		if(i == virtualHost->GetEndIterator())
-		{
-			it_tmp++;
-			virtualHost->AddDirective(directive,it,vt_param,8);
-		}
+			if(i == virtualHost->GetEndIterator() && allow)
+			{
+				it_tmp++;
+				virtualHost->AddDirective(directive,it_tmp,vt_param,8);
+			}
+			if(!allow && i != virtualHost->GetEndIterator())
+			{
+				virtualHost->EraseItem(i);
+			}
 		}
 		else
 		{
@@ -929,15 +1028,20 @@ void CAction::AddAccessDirEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip)
 			vt_param.clear();
 			vt_param.push_back("from");
 			vt_param.push_back(ip);
-			it_tmp = virtualHost->FindNodeDirective(it,directive,vt_param);
-			if(it_tmp != virtualHost->GetEndIterator())
-				virtualHost->EraseItem(it_tmp);
+			vector<string>::iterator i = virtualHost->FindNodeDirective(it,directive,vt_param);
+			if(i != virtualHost->GetEndIterator() && allow)
+				virtualHost->EraseItem(i);
+			if(i == virtualHost->GetEndIterator() && !allow)
+			{
+				it_tmp++;
+				virtualHost->AddDirective(directive,it_tmp,vt_param,8);
+			}
 		}
 		it++;
 	}
 }
 
-void CAction::AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip,string &dir)
+void CAction::AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip,string &dir,bool allow)
 {
 	vector<string> vt_param;
 	string nodeName = "Directory";
@@ -953,44 +1057,108 @@ void CAction::AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *virtualHost,string &i
 		vt_param.push_back(t);
 		it = virtualHost->AddNode(t,it,vt_param);
 		vt_param.clear();
-		vt_param.push_back("deny,allow");
+		if(allow)
+			vt_param.push_back("deny,allow");
+		else
+			vt_param.push_back("allow,deny");
 		virtualHost->AddDirective(directive,it,vt_param,8);
 		it++;
+		if(allow)
+			directive = DENY;
+		else
+			directive = ALLOW;
+		vt_param.clear();
+		vt_param.push_back("from");
+		vt_param.push_back("all");
+		virtualHost->AddDirective(directive,it,vt_param,8);
+		it++;
+
 		vt_param.clear();
 		vt_param.push_back("from");
 		vt_param.push_back(ip);
-		directive = ALLOW;
+		if(allow)
+			directive = ALLOW;
+		else
+			directive = DENY;
 		virtualHost->AddDirective(directive,it,vt_param,8);
 	}
 	else
 	{
 		vt_param.clear();
 		vector<string>::iterator it_tmp = virtualHost->FindNodeDirective(it,directive,vt_param);
-		vector<string> vt_split;
-		Split(*it_tmp,vt_split);
-		if(strncmp(vt_split[1].c_str(),DENY,strlen(DENY)) == 0)
+		if(it_tmp == virtualHost->GetEndIterator())
 		{
 			directive = ALLOW;
+			DeleteNodeDirective(it,directive,vt_param,virtualHost);	
+			directive = DENY;
+			DeleteNodeDirective(it,directive,vt_param,virtualHost);	
+			it++;
+			vt_param.clear();
+			directive = ORDER;
+			if(allow)
+				vt_param.push_back("deny,allow");
+			else
+				vt_param.push_back("allow,deny");
+			virtualHost->AddDirective(directive,it,vt_param,8);
+			it++;
+			if(allow)
+				directive = DENY;
+			else
+				directive = ALLOW;
+			vt_param.clear();
+			vt_param.push_back("from");
+			vt_param.push_back("all");
+			virtualHost->AddDirective(directive,it,vt_param,8);
+			it++;
+
 			vt_param.clear();
 			vt_param.push_back("from");
 			vt_param.push_back(ip);
-			vector<string>::iterator i = virtualHost->FindNodeDirective(it,directive,vt_param);
-			if(i == virtualHost->GetEndIterator())
-			{
-				it_tmp++;
-				virtualHost->AddDirective(directive,it,vt_param,8);
-			}
+			if(allow)
+				directive = ALLOW;
+			else
+				directive = DENY;
+			virtualHost->AddDirective(directive,it,vt_param,8);
 		}
 		else
 		{
-			directive = DENY;
-			vt_param.clear();
-			vt_param.push_back("from");
-			vt_param.push_back(ip);
-			it_tmp = virtualHost->FindNodeDirective(it,directive,vt_param);
-			if(it_tmp != virtualHost->GetEndIterator())
-					virtualHost->EraseItem(it_tmp);
+			vector<string> vt_split;
+			Split(*it_tmp,vt_split);
+			if(strncmp(vt_split[1].c_str(),DENY,strlen(DENY)) == 0)
+			{
+				directive = ALLOW;
+				vt_param.clear();
+				vt_param.push_back("from");
+				vt_param.push_back(ip);
+				vector<string>::iterator i = virtualHost->FindNodeDirective(it,directive,vt_param);
+				if(i == virtualHost->GetEndIterator() && allow)
+				{
+					it_tmp++;
+					virtualHost->AddDirective(directive,it_tmp,vt_param,8);
+				}
+				if(i != virtualHost->GetEndIterator() && !allow)
+				{
+					virtualHost->EraseItem(i);
+				}
+			}
+			else
+			{
+				if(allow)
+					directive = DENY;
+				else
+					directive = ALLOW;
+				vt_param.clear();
+				vt_param.push_back("from");
+				vt_param.push_back(ip);
+				vector<string>::iterator i = virtualHost->FindNodeDirective(it,directive,vt_param);
+				if(i != virtualHost->GetEndIterator() && allow)
+					virtualHost->EraseItem(i);
+				if(i == virtualHost->GetEndIterator() && !allow)
+				{
+					it_tmp++;
+					virtualHost->AddDirective(directive,it_tmp,vt_param,8);
+				}
+			}
 		}
-		it++;
 	}
 }

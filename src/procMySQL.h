@@ -18,4 +18,4 @@ bool LimitMySQLSize(string host,string user,string pwd,string ftpName,string db,
 
 bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool check);
 
-long long GetDataBaseSize(string host,string user,string pwd,string db,unsigned int port = 3306);
+long long GetDataBaseSize(string host,string user,string pwd,string db,string &errInfo,unsigned int port = 3306);

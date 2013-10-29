@@ -41,17 +41,18 @@ private:
 
 	static void DeleteNodeDirective(vector<string>::iterator it,string &directive,vector<string> vt_param,CVirtualHost *virtualHost);
 
-	static bool AddAccess(string &ip,string &dir,CVirtualHost *virtualHost);
+	static void AddAccess(string &ip,string &dir,CVirtualHost *virtualHost,bool allow);
 
-	static void AddAccessIpEmpty(string &dir,CVirtualHost *virtualHost);
+	static void AddAccessIpEmpty(string &dir,CVirtualHost *virtualHost,bool allow);
 
-	static void AddAccessIpNotEmpty(string &dir,CVirtualHost *virtualHost,string &ip);
+	static void AddAccessIpNotEmpty(string &dir,CVirtualHost *virtualHost,string &ip,bool allow);
 
-	static void AddAccessDirEmptyIpEmpty(CVirtualHost *host);
+	static void AddAccessDirEmptyIpEmpty(CVirtualHost *host,bool allow);
 
-	static void AddAccessDirNotEmptyIpEmpty(CVirtualHost *host,string &dir);
+	static void AddAccessDirNotEmptyIpEmpty(CVirtualHost *host,string &dir,bool allow);
 
-	static void AddAccessDirEmptyIpNotEmpty(CVirtualHost *host,string &ip);
+	static void AddAccessDirEmptyIpNotEmpty(CVirtualHost *host,string &ip,bool allow);
 
-	static void AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *host,string &ip,string &dir);
+	static void AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *host,string &ip,string &dir,bool allow);
+	static bool DirectoryAccess(string &action,string &ip,string &dir,CVirtualHost *virtualHost);
 };

@@ -215,11 +215,12 @@ vector<string>::iterator CVirtualHost::FindNodeDirective(vector<string>::iterato
 		if(IsEqualString(vt_tmp[0],directive))
 		{
 			vector<string>::iterator it_param = vt_param.begin();
-			for(; it_param != vt_param.end(); it++)
+			for(; it_param != vt_param.end(); it_param++)
 			{
-				if(!StrInVt(*it,vt_tmp))
+				if(!StrInVt(*it_param,vt_tmp))
 				{
 					exist = false;
+					it++;
 					break;
 				}
 			}
@@ -296,6 +297,7 @@ CVirtualHost* CVirtualHost::GetVirtualHost(string &fileName)
 	if(ret == NULL)
 	{
 		ret = new CVirtualHost(fileName);
+		vt_virtualHost.push_back(ret);
 	}
 	if(ret != NULL && ret->IsUsing())
 		ret = NULL;
@@ -313,6 +315,7 @@ void CVirtualHost::ReleaseVirtualHost(string &fileName)
 		{
 			//(*it)->ResetUsingState();
 			delete (*it);
+			(*it) = NULL;
 			vt_virtualHost.erase(it);
 			break;
 		}

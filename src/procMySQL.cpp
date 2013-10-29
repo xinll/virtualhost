@@ -256,18 +256,13 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 		WriteParam(category,vt_param,"success");
 		if(!dbStrSize.empty())
 		{
-			vector<pair<string,string> > tmp;
-			tmp.push_back(vt_param[0]);
-			tmp.push_back(vt_param[1]);
-			pair<string,string> p;
-			p.first = DBNAME;
-			p.second = mySQLUserName;
-			tmp.push_back(p);
-			p.first = MYSQLSIZE;
-			p.second = dbStrSize;
-			tmp.push_back(p);
-			if(!RecordLimit(tmp,errInfo,true))
+			long long dbSize = strtoll(dbStrSize.c_str(),NULL,10);
+			string pwd = GetEnvVar("MYSQLPWD");
+			if(!LimitMySQLSize("localhost","root",pwd,mySQLUserName,mySQLUserName,dbSize))
+			{
+				errInfo.append("limit the size failed");
 				return false;
+			}
 		}
 		return true;
 	}
@@ -280,7 +275,7 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 }
 
 //读取数据库大小
-long long GetDataBaseSize(string host,string user,string pwd,string db,unsigned int port)
+long long GetDataBaseSize(string host,string user,string pwd,string db,string &errInfo,unsigned int port)
 {
 	MYSQL mysql;
 	
@@ -289,23 +284,25 @@ long long GetDataBaseSize(string host,string user,string pwd,string db,unsigned 
 	if(!mysql_real_connect(&mysql,host.c_str(),user.c_str(),pwd.c_str(),db.c_str(),port,NULL,0))
 	{
 		;//连接数据库失败
+		errInfo.append("can't connect the mysql server!!!");
 		char err[1024];
 		sprintf(err,"can't connect the mysql server:%s",mysql_error(&mysql));
 		WriteLog(category,ERROR,err);
-		return false;
+		return -1;
 	}
 
 	string query = "SHOW TABLE STATUS";
 	if(mysql_query(&mysql,query.c_str()))
 	{
+		errInfo.append("can't execute sql");
 		mysql_close(&mysql);
-		return 0;
+		return -1;
 	}
 	MYSQL_RES *result = mysql_store_result(&mysql);
 	if(result == NULL)
 	{
 		mysql_close(&mysql);
-		return 0;
+		return -1;
 	}
 
 	long long size = 0;

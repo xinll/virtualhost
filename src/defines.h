@@ -126,6 +126,7 @@ typedef	int					MC_SOCKET;
 #define REDIRECTTO          "to"
 #define REWRITEENGINE       "RewriteEngine"
 #define ACTION              "action"
+#define URL                 "url"
 
 //mime类型
 #define MINETYPE            "mineType"

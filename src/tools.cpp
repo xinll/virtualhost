@@ -285,12 +285,13 @@ bool BakConf(string &userName)
 	if(backupDir.empty())
 		backupDir = "/backup_main/";
 	
-	if(NULL == opendir(backupDir.c_str()))
+	DIR *dir;
+	if(NULL == (dir = opendir(backupDir.c_str())))
 	{
 		if(mkdir(backupDir.c_str(),0775) != 0)
 			return false;
 	}
-	
+	closedir(dir);	
 	dirPath = AddSlash(dirPath);
 	backupDir = AddSlash(backupDir);
 
@@ -481,13 +482,15 @@ void WriteParam(char *category,vector<pair<string,string> > &vt_param,string suc
 	WriteLog(category,INFO,params);
 }
 
-void SplitByComas(string &source,vector<string> &result)
+void SplitByComas(string &source,vector<string> &result,char split)
 {
+	if(source.empty())
+		return;
 	const char* data = source.c_str();
 	const char* tmp = data;
 	while(*data != '\0')
 	{
-		if(*data == 44)
+		if(*data == split)
 		{
 			string t(tmp,data - tmp);
 			result.push_back(t);
@@ -496,7 +499,7 @@ void SplitByComas(string &source,vector<string> &result)
 		}
 		data++;
 	}
-	if(tmp + 1 != data)
+	if((*tmp != '\0') && (tmp + 1 != data))
 	{
 		string t(tmp,data - tmp);
 		result.push_back(t);

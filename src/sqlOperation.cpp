@@ -44,10 +44,13 @@ bool ProcSql(vector<pair<string,string> > vt_param,string &errInfo)
 	else if(IsEqualString(value,MYSQLGETSIZE))
 	{
 		string pwd = GetEnvVar("MYSQLPWD");
-	    long long size = GetDataBaseSize("localhost","root",pwd,vt_param[2].second);
-		char result[2014];
-		sprintf(result,"%lld",size);
-		errInfo = result;	
+	    long long size = GetDataBaseSize("localhost","root",pwd,vt_param[2].second,errInfo);
+		if(size >= 0)
+		{
+			char result[2014];
+			sprintf(result,"%lld",size);
+			errInfo = result;	
+		}
 	}
 	else
 	{

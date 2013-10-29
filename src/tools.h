@@ -4,7 +4,8 @@
     > Mail: liangliangxinxin@yeah.net
     > Created Time: 2013年09月16日 星期一 09时50分49秒
  ************************************************************************/
-
+#ifndef _TOOLS_H
+#define _TOOLS_H
 #include <vector>
 #include <string>
 #include "defines.h"
@@ -38,4 +39,5 @@ void RmDir(const char* path);
 
 void WriteParam(char *c,vector<pair<string,string> > &vt_param,string success);
 
-void SplitByComas(string &source,vector<string> &result);
+void SplitByComas(string &source,vector<string> &result,char split = ',');
+#endif
