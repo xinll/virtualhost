@@ -105,15 +105,11 @@ int main(int argc,char **argv)
 	return 0;
 }
 
-void ProcSig(int sig)
-{
-	if(sig == SIGTERM || sig == SIGINT)
-		exit(0);
-}
 int Children()
 {
-	signal(SIGTERM,ProcSig);
-	signal(SIGINT,ProcSig);
+//	signal(SIGTERM,ProcSig);
+	signal(SIGINT,SIG_IGN);
+	signal(SIGQUIT,SIG_IGN);
 
 	char err[256];
 	//初始化python环境
@@ -153,7 +149,8 @@ int Children()
 	}
 	
 	WriteLog(mainlog,INFO,"the system start normally!!!");
-	
+
+#ifdef WITH_MYSQL
 	pthread_t timer;
 	int timer_return = pthread_create(&timer,NULL,StartTimer,NULL);
 	if(timer_return != 0)
@@ -161,7 +158,7 @@ int Children()
 		WriteLog(mainlog,ERROR,"can't start the timer");
 		exit(EXIT_FAILURE);
 	}
-
+#endif
 	MC_SOCKET sock;
 	struct sockaddr_in clientAddr;
 	while(1)
@@ -237,8 +234,10 @@ void* ProcSocket(void *arg)
 		}
 		char *pStr = NULL;
 		char *tmp = buf;
+		vector<string> ret_value;
 		while(pStr = strstr(tmp,PARAMEND))
 		{
+			errInfo = "";
 			vector<pair<string,string> > vt_param;
 			if(!ProcParam(tmp,vt_param))
 			{
@@ -247,6 +246,7 @@ void* ProcSocket(void *arg)
 				sprintf(err,"the param %s is not right from %s",t.c_str(),clientAddr);
 				WriteLog(mainlog,ERROR,err);
 				tmp = pStr + strlen(PARAMEND);
+				ret_value.push_back(errInfo);
 				continue;
 			}
 			tmp = pStr + strlen(PARAMEND);
@@ -258,38 +258,50 @@ void* ProcSocket(void *arg)
 				{
 					if(!ProcHost(vt_param,errInfo))
 					{
-						errInfo.append("|");
+						ret_value.push_back(errInfo);
 					}
 				}
+#ifdef WITH_MYSQL
 				else if(p.second.compare(STRSQL) == 0)
 				{
 					if(!ProcSql(vt_param,errInfo))
 					{
-						errInfo.append("|");
+						ret_value.push_back(errInfo);
+					}
+					else
+					{
+						string tmp = SUCCESS;
+						if(vt_param[1].second.compare(MYSQLGETSIZE) == 0)
+						{
+							tmp.append(errInfo);
+							tmp.append(",");
+						}
+						ret_value.push_back(tmp);
 					}
 				}
+				else
+				{
+					errInfo = "unknow operation";
+				}
+#endif
 			}
 		}
-		if(errInfo.empty())
+		string response = "";
+		int size = ret_value.size();
+		for(int i = 0; i < size; i++)
 		{
-			errInfo = SUCCESS;
-			sprintf(err,"success from %s",clientAddr);
-			WriteLog(mainlog,INFO,err);
+			response.append(ret_value[i]);
+			if(i != size -1)
+				response.append("|");
 		}
-		else
-		{
-			if(errInfo.c_str()[errInfo.length() - 1] == '|')
-				errInfo = errInfo.substr(0,errInfo.length() - 1);
-			sprintf(err,"%s from %s",errInfo.c_str(),clientAddr);
-			WriteLog(mainlog,ERROR,err);
-		}
-		acceptSock->SendErrorInfo(errInfo.c_str());
+		WriteLog(mainlog,INFO,response.c_str());
+		acceptSock->SendErrorInfo(response.c_str());
 	}
 	delete acceptSock;
 
 	pthread_exit(NULL);
 }
-
+#ifdef WITH_MYSQL
 typedef struct LimitSizeParam{
 	string ip;
 	string name;
@@ -385,3 +397,4 @@ void* StartTimer(void* arg)
 	}
 	return NULL;
 }
+#endif

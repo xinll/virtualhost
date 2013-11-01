@@ -499,9 +499,20 @@ void SplitByComas(string &source,vector<string> &result,char split)
 		}
 		data++;
 	}
-	if((*tmp != '\0') && (tmp + 1 != data))
+//	if((*tmp != '\0') && (tmp + 1 != data))
+	if((*tmp != '\0'))
 	{
 		string t(tmp,data - tmp);
 		result.push_back(t);
 	}
+}
+
+bool CheckParam(vector<pair<string,string> > &vt_param,int count,string &errInfo)
+{
+	if(vt_param.size() < count)
+	{
+		errInfo.append("too less param.");
+		return false;
+	}
+	return true;
 }

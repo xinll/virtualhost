@@ -30,7 +30,7 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 	string ftpUserName,ftpPw,mySQLUserName,mySQLPw;
 	int ftpPort = 21;
 	string ftpServer = "127.0.0.1";
-	string mySQLServer = "localhost";
+	string mySQLServer = "127.0.0.1";
 	string ftpDir = "/";
 	time_t t = time(NULL);
 	char buf[100];
@@ -95,20 +95,19 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 	string dir = "/tmp";
 	chdir(dir.c_str());
 	char cmdBuf[1024];
-	sprintf(cmdBuf,"mysqldump -u%s -p%s -h%s %s --add-drop-database --database --lock-all-tables --disable-keys > %s",mySQLUserName.c_str(),mySQLPw.c_str(),mySQLServer.c_str(),mySQLDataBase.c_str(),bakFileName.c_str());
+	sprintf(cmdBuf,"mysqldump -u%s -p%s -h%s %s > \'%s\'",mySQLUserName.c_str(),mySQLPw.c_str(),mySQLServer.c_str(),mySQLDataBase.c_str(),bakFileName.c_str());
     int ret = system(cmdBuf);
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
 	{
 		char tmp[256];
-		sprintf(tmp,"backup MySQL %s success",mySQLDataBase.c_str());
+		sprintf(tmp,"backup MySQL %s success",mySQLUserName.c_str());
 		WriteLog(category,INFO,tmp);
 	}
 	else
 	{
-		errInfo.append("backup MySQL %s failed",mySQLDataBase.c_str());
-	
 		char tmp[256];
-		sprintf(tmp,"backup MySQL %s failed",mySQLDataBase.c_str());
+		sprintf(tmp,"backup MySQL %s failed",mySQLUserName.c_str());
+		errInfo.append(tmp);
 		WriteLog(category,INFO,tmp);
 		return false;
 	}
@@ -118,6 +117,16 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 	{
 		//连接ftp错误
 		errInfo.append("can't connect the ftp server");
+		unlink(bakFileName.c_str());
+		chdir("/");
+		return false;
+	}
+	err = ftpClient.ftp_login(ftpUserName.c_str(),ftpPw.c_str());
+	if(err)
+	{
+		//登陆错误
+		errInfo.append("can't login the ftp server");
+		unlink(bakFileName.c_str());
 		chdir("/");
 		return false;
 	}
@@ -131,6 +140,7 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 	}
 
 	err = ftpClient.ftp_upload(bakFileName.c_str(),ftpDir.c_str(),bakFileName.c_str());
+	unlink(bakFileName.c_str());
 	chdir("/");
 	if(err)
 	{
@@ -149,7 +159,7 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 	string ftpUserName,ftpPw,mySQLUserName,mySQLPw,mySQLDataBase,bakFileName;
 	int ftpPort = 21;
 	string ftpServer = "127.0.0.1";
-	string mySQLServer = "localhost";
+	string mySQLServer = "127.0.0.1";
 	int size = vt_param.size();
 	string ftpDir = "/";
 	string dbStrSize = "";
@@ -246,7 +256,8 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 	ftpClient.ftp_quit();
 
 	char cmdBuf[1024];
-	sprintf(cmdBuf,"mysql -u%s -p%s -h%s mysql < %s",mySQLUserName.c_str(),mySQLPw.c_str(),mySQLServer.c_str(),bakFileName.c_str());
+	sprintf(cmdBuf,"mysql -u%s -p%s -h%s %s < \'%s\'",mySQLUserName.c_str(),mySQLPw.c_str(),mySQLServer.c_str(),mySQLUserName.c_str(),bakFileName.c_str());
+	unlink(bakFileName.c_str());
 	int ret = system(cmdBuf);
 	chdir("/");
 

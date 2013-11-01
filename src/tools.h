@@ -40,4 +40,6 @@ void RmDir(const char* path);
 void WriteParam(char *c,vector<pair<string,string> > &vt_param,string success);
 
 void SplitByComas(string &source,vector<string> &result,char split = ',');
+
+bool CheckParam(vector<pair<string,string> > &vt_param,int count,string &errInfo);
 #endif

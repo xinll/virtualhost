@@ -26,6 +26,10 @@ public:
 
 	static bool ProcDirectoryAccess(vector<pair<string,string> > &vt_param,string &errInfo);
 
+	static bool Compress(vector<pair<string,string> > &vt_param,string &errInfo);
+
+	static bool UnCompress(vector<pair<string,string> > &vt_param,string &errInfo);
+
 private:
 	static void AddRedirect(string redirectFrom,string redirectTo,CVirtualHost *host);
 
@@ -41,18 +45,18 @@ private:
 
 	static void DeleteNodeDirective(vector<string>::iterator it,string &directive,vector<string> vt_param,CVirtualHost *virtualHost);
 
-	static void AddAccess(string &ip,string &dir,CVirtualHost *virtualHost,bool allow);
+	static bool AddAccess(string &ip,string &dir,CVirtualHost *virtualHost,bool allow);
 
-	static void AddAccessIpEmpty(string &dir,CVirtualHost *virtualHost,bool allow);
+	static bool AddAccessIpEmpty(string &dir,CVirtualHost *virtualHost,bool allow);
 
-	static void AddAccessIpNotEmpty(string &dir,CVirtualHost *virtualHost,string &ip,bool allow);
+	static bool AddAccessIpNotEmpty(string &dir,CVirtualHost *virtualHost,string &ip,bool allow);
 
-	static void AddAccessDirEmptyIpEmpty(CVirtualHost *host,bool allow);
+	static bool AddAccessDirEmptyIpEmpty(CVirtualHost *host,bool allow);
 
-	static void AddAccessDirNotEmptyIpEmpty(CVirtualHost *host,string &dir,bool allow);
+	static bool AddAccessDirNotEmptyIpEmpty(CVirtualHost *host,string &dir,bool allow);
 
-	static void AddAccessDirEmptyIpNotEmpty(CVirtualHost *host,string &ip,bool allow);
+	static bool AddAccessDirEmptyIpNotEmpty(CVirtualHost *host,string &ip,bool allow);
 
-	static void AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *host,string &ip,string &dir,bool allow);
+	static bool AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *host,string &ip,string &dir,bool allow);
 	static bool DirectoryAccess(string &action,string &ip,string &dir,CVirtualHost *virtualHost);
 };

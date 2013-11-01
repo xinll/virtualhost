@@ -51,6 +51,8 @@ bool ProcSql(vector<pair<string,string> > vt_param,string &errInfo)
 			sprintf(result,"%lld",size);
 			errInfo = result;	
 		}
+		else
+			return false;
 	}
 	else
 	{

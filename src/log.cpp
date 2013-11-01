@@ -10,7 +10,7 @@
 #include <pthread.h>
 #include <vector>
 #include <string>
-
+#include <syslog.h>
 using namespace std;
 static pthread_mutex_t mutex_log;
 static vector<pair<string,zlog_category_t*> > vt_category;
@@ -21,7 +21,7 @@ void InitLog()
 	zlog_init("/usr/local/apache_conf/zlog.conf");
 }
 
-zlog_category_t* GetCategory(char* category)
+zlog_category_t* GetCategory(const char* category)
 {
 	zlog_category_t* ret = NULL;
 	pthread_mutex_lock(&mutex_log);
@@ -52,7 +52,7 @@ void UnInitLog()
 }
 
 
-void WriteLog(char *category,int level,char *log)
+void WriteLog(const char *category,int level,const char *log)
 {
 	zlog_category_t* c = GetCategory(category);
 	if(c)

@@ -268,7 +268,7 @@ vector<string>::iterator CVirtualHost::AddNode(string &node,vector<string>::iter
 	return it;
 }
 
-void CVirtualHost::AddDirective(string &directive,vector<string>::iterator it,vector<string> &vt_param,int n)
+vector<string>::iterator CVirtualHost::AddDirective(string &directive,vector<string>::iterator it,vector<string> &vt_param,int n)
 {
 	string oneRecord(n,' ');
 	oneRecord.append(directive);
@@ -278,7 +278,7 @@ void CVirtualHost::AddDirective(string &directive,vector<string>::iterator it,ve
 		oneRecord.append(vt_param[i]);
 	}
 	oneRecord.append(NEWLINE);
-	vt_conf.insert(it,oneRecord);
+	return vt_conf.insert(it,oneRecord);
 }
 
 CVirtualHost* CVirtualHost::GetVirtualHost(string &fileName)

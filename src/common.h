@@ -33,7 +33,7 @@ public:
 	vector<string>::iterator  FindGlobalDirective(string &directive,string param[],int n,vector<string>::iterator it);
 	vector<string>::iterator  FindNodeDirective(vector<string>::iterator it,string &directive,vector<string> &vt_param);
 	vector<string>::iterator AddNode(string &node,vector<string>::iterator it,vector<string> &vt_nodeParam);
-	void AddDirective(string &directive,vector<string>::iterator it,vector<string> &vt_param,int n);
+	vector<string>::iterator AddDirective(string &directive,vector<string>::iterator it,vector<string> &vt_param,int n);
 	
 	vector<string>::iterator EraseItem(vector<string>::iterator it);
 	vector<string>::iterator GetIterator(int offset = 0);
