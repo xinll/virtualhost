@@ -1041,6 +1041,7 @@ bool CAction::Compress(vector<pair<string,string> > &vt_param,string &errInfo)
 	if(!CheckParam(vt_param,5,errInfo))
 		return false;
 
+
 }
 
 bool CAction::UnCompress(vector<pair<string,string> > &vt_param,string &errInfo)
