@@ -15,10 +15,10 @@ using namespace std;
 static pthread_mutex_t mutex_log;
 static vector<pair<string,zlog_category_t*> > vt_category;
 
-void InitLog()
+void InitLog(const char *cfgFile)
 {
 	pthread_mutex_init(&mutex_log,NULL);
-	zlog_init("/usr/local/apache_conf/zlog.conf");
+	zlog_init(cfgFile);
 }
 
 zlog_category_t* GetCategory(const char* category)

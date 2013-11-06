@@ -5,7 +5,6 @@
     > Created Time: 2013年09月18日 星期三 10时07分03秒
  ************************************************************************/
 
-#include <iostream>
 #include "config.h"
 #include "tools.h"
 #include <string.h>
@@ -30,7 +29,7 @@ string Config::GetValue(string key)
 	
 	string retValue = "";
 	vector<string>::iterator iter = vt_config.begin();
-	for(;iter != vt_config.end(); iter++)
+	for(;iter != vt_config.end(); )
 	{
 		if((*iter).find(key) == 0)
 		{
@@ -42,7 +41,9 @@ string Config::GetValue(string key)
 				vt_configInfo.push_back(p);
 			}
 			vt_config.erase(iter);
+			continue;
 		}
+		iter++;
 	}
 	return retValue;
 }

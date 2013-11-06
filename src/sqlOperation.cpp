@@ -9,6 +9,7 @@
 #include "procMySQL.h"
 #include "tools.h"
 #include "config.h"
+#include <stdio.h>
 
 bool ProcSql(vector<pair<string,string> > vt_param,string &errInfo)
 {

@@ -34,13 +34,13 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 	else if(IsEqualString(value,ERRORDOCUMENT))
 	{
 		//修改错误页面
-		if(!CAction::ProcErrorDocument(vt_param,errInfo))
+		if(!ProcErrorDocument(vt_param,errInfo))
 			return false;
 	}
 	else if(IsEqualString(value,FILEPERMISSION))
 	{
 		//脚本权限
-		if(!CAction::ProcFilePermission(vt_param,errInfo))
+		if(!ProcFilePermission(vt_param,errInfo))
 			return false;
 	}
 
@@ -74,21 +74,39 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 	}
 	else if(IsEqualString(value,DELETEDIR))
 	{
-		CAction::DeleteRootDirectory(vt_param,errInfo);
+		DeleteRootDirectory(vt_param,errInfo);
 	}
 	else if(IsEqualString(value,REDIRECT))
 	{
-		if(!CAction::ProcRedirect(vt_param,errInfo))
+		if(!ProcRedirect(vt_param,errInfo))
 			return false;
 	}
 	else if(IsEqualString(value,MINE))
 	{
-		if(!CAction::ProcMineType(vt_param,errInfo))
+		if(!ProcMineType(vt_param,errInfo))
 			return false;
 	}
 	else if(IsEqualString(value,DIRECTORYPERMISSION))
 	{
-		if(!CAction::ProcDirectoryAccess(vt_param,errInfo))
+		if(!ProcDirectoryAccess(vt_param,errInfo))
+			return false;
+	}
+	else if(IsEqualString(value,COMPRESS))
+	{
+		return Compress(vt_param,errInfo);
+	}
+	else if(IsEqualString(value,UNCOMPRESS))
+	{
+		return UnCompress(vt_param,errInfo);
+	}
+	else if(IsEqualString(value,DIRECTORYINDEX))
+	{
+		if(!ProcIndex(vt_param,errInfo))
+			return false;
+	}
+	else if(IsEqualString(value,SERVERALIAS))
+	{
+		if(!ProcBind(vt_param,errInfo))
 			return false;
 	}
 	else

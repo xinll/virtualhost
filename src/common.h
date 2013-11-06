@@ -4,7 +4,8 @@
     > Mail: liangliangxinxin@yeah.net
     > Created Time: 2013年09月27日 星期五 13时26分25秒
  ************************************************************************/
-
+#ifndef _COMMON_H
+#define _COMMON_H
 #include <time.h>
 #include <string>
 #include <iostream>
@@ -50,3 +51,4 @@ public:
 	bool   IsNodeStart(const char *line);
 	bool   IsNodeEnd(const char *line);
 };
+#endif

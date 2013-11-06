@@ -9,7 +9,7 @@
 #include <vector>
 #include <string>
 #include "defines.h"
-#include "log.h"
+#include "common.h"
 
 using namespace std;
 
@@ -21,6 +21,8 @@ bool ProcParam(char *param,vector<pair<string,string> > &vt_param);
 
 string MakeConfPath(string &ftpName);
 
+string AddSlash(string &str);
+
 string GetEnvVar(string key);
 
 void Split(string source,vector<string> &result);
@@ -31,7 +33,7 @@ bool RestoreConf(string &userName);
 
 bool BakConf(string &userName);
 
-bool StrInVt(string &str,vector<string> &vt);
+bool StrInVt(string str,vector<string> &vt);
 
 bool UpLoadFile(const char* ftpServer,const char* ftpUser,const char* ftpPwd,const char* file,const char* dir);
 
@@ -42,4 +44,13 @@ void WriteParam(char *c,vector<pair<string,string> > &vt_param,string success);
 void SplitByComas(string &source,vector<string> &result,char split = ',');
 
 bool CheckParam(vector<pair<string,string> > &vt_param,int count,string &errInfo);
+bool InitEnv(CVirtualHost **virtualHost,string &userName,string &errInfo,char *category);
+	
+bool WriteVirtualHost(CVirtualHost *virtualHost,string &errInfo,char *category);
+
+bool ValidateParamEmpty(const char* value);
+
+string GetValue(string key,vector<pair<string,string> > &vt_param);
+
+string MakePath(string &path,string file);
 #endif

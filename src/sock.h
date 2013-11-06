@@ -1,3 +1,5 @@
+#ifndef _SOCK_H
+#define _SOCK_H
 #include "defines.h"
 
 class ServerSocket
@@ -56,3 +58,4 @@ public:
 private:
 	MC_SOCKET _s;
 };
+#endif

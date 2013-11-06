@@ -15,7 +15,7 @@
 #include <sys/stat.h>
 #include "config.h"
 
-char *category = "backupMysqlLog";
+static char *category = "backupMysqlLog";
 extern pthread_mutex_t mutex;
 
 bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
@@ -27,61 +27,22 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 		errInfo.append("too less param.");
 		return false;
 	}
-	string ftpUserName,ftpPw,mySQLUserName,mySQLPw;
-	int ftpPort = 21;
-	string ftpServer = "127.0.0.1";
-	string mySQLServer = "127.0.0.1";
-	string ftpDir = "/";
-	time_t t = time(NULL);
-	char buf[100];
-	sprintf(buf,"%ld.sql",t);
-	string bakFileName(buf);
-	int size = vt_param.size();
-	for(int i = 2; i < size; i++)
-	{
-		if(IsEqualString(vt_param[i].first,FTPUSER))
-		{
-			ftpUserName = vt_param[i].second;
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,FTPPW))
-		{
-			ftpPw = vt_param[i].second;
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,MYSQLUSER))
-		{
-			mySQLUserName = vt_param[i].second;
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,MYSQLPW))
-		{
-			mySQLPw = vt_param[i].second;
-			continue;
-		}
+	string ftpUserName = GetValue(FTPUSER,vt_param);
+	string ftpPw = GetValue(FTPPW,vt_param);
+	string mySQLUserName =GetValue(MYSQLUSER,vt_param);
+	string mySQLPw = GetValue(MYSQLPW,vt_param);
 
-		if(IsEqualString(vt_param[i].first,FTPSERVER))
-		{
-			ftpServer = vt_param[i].second;
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,MYSQLBAKNAME))
-		{
-			bakFileName = vt_param[i].second;
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,FTPPORT))
-		{
-			string tmp  = vt_param[i].second;
-			ftpPort = atoi(tmp.c_str());
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,FTPDIR))
-		{
-			ftpDir = vt_param[i].second;
-			continue;
-		}
+	int ftpPort = 21;
+	string ftpServer = GetValue(FTPSERVER,vt_param);
+	string mySQLServer = "127.0.0.1";
+	string ftpDir = GetValue(FTPDIR,vt_param);
+	string bakFileName = GetValue(MYSQLBAKNAME,vt_param);
+	string strPort = GetValue(FTPPORT,vt_param);
+	if(ValidateParamEmpty(strPort.c_str()))
+	{
+		ftpPort = atoi(strPort.c_str());
 	}
+
 	string mySQLDataBase = mySQLUserName;
 
 	if(ftpUserName.empty() || mySQLUserName.empty() || mySQLDataBase.empty())
@@ -130,14 +91,6 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 		chdir("/");
 		return false;
 	}
-	err = ftpClient.ftp_login(ftpUserName.c_str(),ftpPw.c_str());
-	if(err)
-	{
-		//登陆错误
-		errInfo.append("can't login the ftp server");
-		chdir("/");
-		return false;
-	}
 
 	err = ftpClient.ftp_upload(bakFileName.c_str(),ftpDir.c_str(),bakFileName.c_str());
 	unlink(bakFileName.c_str());
@@ -156,63 +109,24 @@ bool MySQLBack(vector<pair<string,string> > &vt_param,string &errInfo)
 bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 {
 	WriteParam(category,vt_param,"");
-	string ftpUserName,ftpPw,mySQLUserName,mySQLPw,mySQLDataBase,bakFileName;
 	int ftpPort = 21;
-	string ftpServer = "127.0.0.1";
 	string mySQLServer = "127.0.0.1";
-	int size = vt_param.size();
-	string ftpDir = "/";
-	string dbStrSize = "";
-	for(int i = 2; i < size; i++)
+	
+	string ftpUserName = GetValue(FTPUSER,vt_param);
+	string ftpPw = GetValue(FTPPW,vt_param);
+	string mySQLUserName = GetValue(MYSQLUSER,vt_param);
+	string mySQLPw = GetValue(MYSQLPW,vt_param);
+	string ftpServer = GetValue(FTPSERVER,vt_param);
+	string bakFileName = GetValue(MYSQLBAKNAME,vt_param);
+	string strPort = GetValue(FTPPORT,vt_param);
+	if(ValidateParamEmpty(strPort.c_str()))
 	{
-		if(IsEqualString(vt_param[i].first,FTPUSER))
-		{
-			ftpUserName = vt_param[i].second;
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,FTPPW))
-		{
-			ftpPw = vt_param[i].second;
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,MYSQLUSER))
-		{
-			mySQLUserName = vt_param[i].second;
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,MYSQLPW))
-		{
-			mySQLPw = vt_param[i].second;
-			continue;
-		}
-
-		if(IsEqualString(vt_param[i].first,FTPSERVER))
-		{
-			ftpServer = vt_param[i].second;
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,MYSQLBAKNAME))
-		{
-			bakFileName = vt_param[i].second;
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,FTPPORT))
-		{
-			string tmp  = vt_param[i].second;
-			ftpPort = atoi(tmp.c_str());
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,FTPDIR))
-		{
-			ftpDir = vt_param[i].second;
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,MYSQLSIZE))
-		{
-			dbStrSize = vt_param[i].second;
-			continue;
-		}
+		ftpPort = atoi(strPort.c_str());
 	}
+
+	string ftpDir = GetValue(FTPDIR,vt_param);
+	string dbStrSize = GetValue(MYSQLSIZE,vt_param);
+	
 	if(ftpUserName.empty() || mySQLUserName.empty() || bakFileName.empty())
 	{
 		//参数错误
@@ -257,8 +171,9 @@ bool MySQLRestore(vector<pair<string,string> > &vt_param,string &errInfo)
 
 	char cmdBuf[1024];
 	sprintf(cmdBuf,"mysql -u%s -p%s -h%s %s < \'%s\'",mySQLUserName.c_str(),mySQLPw.c_str(),mySQLServer.c_str(),mySQLUserName.c_str(),bakFileName.c_str());
-	unlink(bakFileName.c_str());
 	int ret = system(cmdBuf);
+
+	unlink(bakFileName.c_str());
 	chdir("/");
 
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
@@ -428,32 +343,19 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 	struct stat buf;
 	static vector<string> vt_conf;
 
-	string db,size;
+	string db = GetValue(DBNAME,vt_param);
+	string size = GetValue(MYSQLSIZE,vt_param);
 	string ip = "localhost";
-	int length = vt_param.size();
-	for(int i = 2; i < length; i++)
-	{
-		if(IsEqualString(vt_param[i].first,DBNAME))
-		{
-			db = vt_param[i].second;
-			continue;
-		}
-		if(IsEqualString(vt_param[i].first,MYSQLSIZE))
-		{
-			size = vt_param[i].second;
-			continue;
-		}
-	}
 	
 	WriteParam(category,vt_param,"");
 	if(vt_param.size() < 4 && !check)
 	{
-		errInfo.append("too less params");
+		errInfo.append("too less params.");
 		return false;
 	}
 	else if(vt_param.size() < 3 && check)
 	{
-		errInfo.append("too less params");
+		errInfo.append("too less params.");
 		return false;
 	}
 	if(check)
@@ -463,7 +365,7 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 		{
 			if(!ReadFile(&vt_conf,"/usr/local/apache_conf/mysql.size"))
 			{
-				errInfo.append("read /usr/local/apache_conf/mysql.size failed");
+				errInfo.append("read /usr/local/apache_conf/mysql.size failed.");
 				WriteLog(category,ERROR,"read /usr/local/apache_conf/mysql.size failed");
 				pthread_mutex_unlock(&mutex);
 				WriteParam(category,vt_param,"failed");
@@ -493,7 +395,7 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 		}
 		if(!success)
 		{
-			errInfo.append("revoke or grant failed");
+			errInfo.append("revoke or grant failed.");
 			WriteParam(category,vt_param,"failed");
 		}
 		else
@@ -529,7 +431,7 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 			{
 				if(!ReadFile(&vt_conf,"/usr/local/apache_conf/mysql.size"))
 				{
-					errInfo.append("read /usr/local/apache_conf/mysql.size failed");
+					errInfo.append("read /usr/local/apache_conf/mysql.size failed.");
 					WriteLog(category,ERROR,"read /usr/local/apache_conf/mysql.size failed");
 					pthread_mutex_unlock(&mutex);
 					return false;
@@ -557,7 +459,7 @@ bool RecordLimit(vector<pair<string,string> >&vt_param,string &errInfo,bool chec
 			vt_conf.push_back(param);
 			if(!WriteFile(&vt_conf,"/usr/local/apache_conf/mysql.size"))
 			{
-				errInfo.append("write /usr/local/apache_conf/mysql.size failed");
+				errInfo.append("write /usr/local/apache_conf/mysql.size failed.");
 				WriteLog(category,ERROR,"write /usr/local/apache_conf/mysql.size failed");	
 				pthread_mutex_unlock(&mutex);
 				return false;

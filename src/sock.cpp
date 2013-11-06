@@ -3,6 +3,7 @@
 #include<string.h>
 #include<stdio.h>
 #include<arpa/inet.h>
+#include<syslog.h>
  ServerSocket* ServerSocket::_serverSock = NULL;
 
  ServerSocket::~ServerSocket()
@@ -17,6 +18,8 @@ bool ServerSocket::createSocket()
 {
 #ifdef __unix
 	s = socket(PF_INET,SOCK_STREAM,0);
+	int one = 1;
+	setsockopt(s,SOL_SOCKET,SO_REUSEADDR,&one,sizeof(one));
 #endif
 #ifdef WIN32
 	s = socket(AF_INET,SOCK_STREAM,0);
@@ -69,6 +72,7 @@ ClientSocket::ClientSocket(MC_SOCKET s)
 ClientSocket::~ClientSocket()
 {
 	MC_CLOSESOCKET(_s);
+	syslog(LOG_INFO,"CLOSE--------------------");
 }
 int ClientSocket::ReadNetData(char *buf,int size)
 {

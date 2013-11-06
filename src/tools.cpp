@@ -9,12 +9,11 @@
 #include <fstream>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include "ftp.h"
 #include "config.h"
-#include <errno.h>
+#include "log.h"
 
 bool ReadFile(vector<string> *vt_conf,const char *fileName)
 {
@@ -31,7 +30,7 @@ bool ReadFile(vector<string> *vt_conf,const char *fileName)
 	{
 		string line;
 		getline(f,line);
-		if(line == NEWLINE)
+		if(line == NEWLINE || line.empty())
 			continue;
 		line.append(NEWLINE);
 		vt_conf->push_back(line);
@@ -97,7 +96,7 @@ string GetEnvVar(string key)
 	return  config.GetValue(key);
 }
 
-string AddSlash(string str)
+string AddSlash(string &str)
 {
 	if(str.c_str()[str.size() - 1] != '/')
 	{
@@ -301,7 +300,6 @@ bool BakConf(string &userName)
 	cmd.append(backupDir);
 	cmd.append(" ");
 	cmd.append(backupWhat);
-	syslog(LOG_INFO,cmd.c_str());
 	int ret = system(cmd.c_str());
 	chdir("/");
 	if(ret != -1 && WIFEXITED(ret) && (WEXITSTATUS(ret) == 0 || WEXITSTATUS(ret) == 12))
@@ -340,7 +338,6 @@ bool RestoreConf(string &userName)
 	cmd.append(" ");
 	cmd.append("-d ");
 	cmd.append(dirPath);
-	syslog(LOG_INFO,cmd.c_str());
 	int ret = system(cmd.c_str());
 
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
@@ -351,7 +348,7 @@ bool RestoreConf(string &userName)
 		return false;
 }
 
-bool StrInVt(string &str,vector<string> &vt)
+bool StrInVt(string str,vector<string> &vt)
 {
 	vector<string>::iterator it = vt.begin();
 	for(; it != vt.end(); it++)
@@ -369,14 +366,12 @@ bool UpLoadFile(const char* ftpServer,const char* ftpUser,const char* ftpPwd,con
 	if(err)
 	{
 		//连接ftp错误
-		syslog(LOG_ERR,"can't connect the ftp server!!!");
 		return false;
 	}
 	err = ftpClient.ftp_login(ftpUser,ftpPwd);
 	if(err)
 	{
 		//登陆错误
-		syslog(LOG_ERR,"can't login the ftp server!!!");
 		return false;
 	}
 	err = ftpClient.ftp_upload(file,dir,file);
@@ -384,7 +379,6 @@ bool UpLoadFile(const char* ftpServer,const char* ftpUser,const char* ftpPwd,con
 	if(err)
 	{
 		//上传文件错误
-		syslog(LOG_ERR,"upload file failed!!!");
 		return false;
 	}
 	ftpClient.ftp_quit();
@@ -515,4 +509,134 @@ bool CheckParam(vector<pair<string,string> > &vt_param,int count,string &errInfo
 		return false;
 	}
 	return true;
+}
+
+
+bool WriteVirtualHost(CVirtualHost *virtualHost,string &errInfo,char *category)
+{
+	string userName = virtualHost->GetFileName();
+	if(!virtualHost->SaveFile())
+	{
+		string err = virtualHost->GetLastErrorStr();
+		errInfo.append(err);
+		char tmp[256];
+		strcpy(tmp,err.c_str());
+		WriteLog(category,ERROR,tmp);
+		if(RestoreConf(userName))
+		{
+			errInfo.append("restore the config file failed:");
+			errInfo.append(userName);
+			char tmp[256];
+			sprintf(tmp,"restore the config file failed:%s.conf",userName.c_str());
+			WriteLog(category,ERROR,tmp);
+		}
+		return false;
+	}
+	return true;
+}
+bool InitEnv(CVirtualHost **virtualHost,string &userName,string &errInfo,char *category)
+{
+	 (*virtualHost) = CVirtualHost::GetVirtualHost(userName);
+	if((*virtualHost) == NULL)
+	{
+		errInfo.append("the file is using:");
+		errInfo.append(userName);
+		char err[256];
+		sprintf(err,"the config file is using %s.conf",userName.c_str());
+		WriteLog(category,ERROR,err);
+		return false;
+	}
+
+	if(!BakConf(userName))
+	{
+		errInfo.append("bak the config file failed:");
+		errInfo.append(userName);
+		char err[256];
+
+		sprintf(err,"backup the config file failed:%s.conf",userName.c_str());
+		WriteLog(category,ERROR,err);
+
+		return false;
+	}
+
+	if(!(*virtualHost)->LoadFile())
+	{
+		string err = (*virtualHost)->GetLastErrorStr();
+		errInfo.append(err);
+		char tmp[256];
+		strcpy(tmp,err.c_str());
+		WriteLog(category,ERROR,tmp);
+		return false;
+	}
+	return true;
+}
+
+bool ValidateParamEmpty(const char* value)
+{
+	if(strlen(value) == 0)
+	{
+		return false;
+	}
+	const char *tmp = value;
+	while(*tmp != '\0')
+	{
+		if(*tmp != 32 && *tmp != 9)
+			return true;
+		tmp++;
+	}
+	return false;
+}
+
+string trim(string &str)
+{
+	const char* tmp = str.c_str();
+	for(;*tmp != '\0';tmp++)
+	{
+		if(*tmp != 32 && *tmp !=9)
+			break;
+	}
+	if(*tmp == '\0')
+	{
+		return "";
+	}
+	else
+	{
+		const char* end = str.c_str() + str.length() - 1;
+		for(;end >= tmp;end--)
+		{
+			if(*end != 32 && *end != 9)
+				break;
+		}
+		string retValue(tmp,end - tmp + 1);
+		return retValue;
+	}
+	return "";
+}
+
+string GetValue(string key,vector<pair<string,string> > &vt_param)
+{
+	int size = vt_param.size();
+	for(int i = 0; i < size; i++)
+	{
+		if(vt_param[i].first.compare(key) == 0)
+		{
+			return trim(vt_param[i].second);
+			break;
+		}
+	}
+	return "";
+}
+
+string MakePath(string &path,string file)
+{
+	AddSlash(path);
+	if(file.c_str()[0] == '/')
+	{
+		path.append(file.c_str() + 1);
+	}
+	else
+	{
+		path.append(file);
+	}
+	return path;
 }

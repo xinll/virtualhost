@@ -16,7 +16,7 @@ typedef	int					MC_SOCKET;
 #define MC_CLOSESOCKET(s)	close(s)
 #define ISVALIDSOCKET(s)	s < 0
 #endif // __unix
-#endif // !DEFINEHEADERS
+//#endif // !DEFINEHEADERS
 
 #ifdef __unix
 #define CONF_DIR			"/etc/httpd/vhost.d/"
@@ -67,7 +67,17 @@ typedef	int					MC_SOCKET;
 #define REDIRECT            "redirect"
 #define MINE                "mine"
 #define DIRECTORYPERMISSION "directoryAccess"
+#define COMPRESS            "compress"
+#define UNCOMPRESS          "uncompress"
+#define DIRECTORYINDEX      "DirectoryIndex"
+#define SERVERALIAS         "ServerAlias"
 
+#define HOSTBIND            "host"
+//DirectoryIndex
+#define INDEX                "index"
+
+//压缩文件
+#define FILENAME            "zipName"
 //目录IP访问限制
 #define ADDRESS             "ip"
 #define DIRECTORY           "directory"
@@ -134,3 +144,4 @@ typedef	int					MC_SOCKET;
 
 //获取MySQL数据库大小
 #define MYSQLGETSIZE        "getSize"
+#endif // !DEFINEHEADERS
