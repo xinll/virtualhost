@@ -1,5 +1,3 @@
-#include <iostream>
-#include <fstream>
 #include <vector>
 #include <string>
 #include <stdlib.h>
@@ -7,24 +5,20 @@
 #include <unistd.h>
 #include <string.h>
 #include <utility>
-#include <syslog.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
 #include <pthread.h>
-#include <vector>
+#include <arpa/inet.h>
+#include <sys/time.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "../src/sock.h"
 #include "../src/tools.h"
 #include "../src/hostOperation.h"
-//#include "../src/callPython.h"
-#include "../src/config.h"
 #include "../src/log.h"
-#include <sys/time.h>
-#include <signal.h>
-#include "../src/procMySQL.h"
-#include <sys/types.h>
-#include <sys/wait.h>
 #include "../src/sqlOperation.h"
+#include "../src/defines.h"
+#include "../src/procMySQL.h"
+#include "../src/threadpool.h"
 
 using namespace std;
 
@@ -112,16 +106,9 @@ int Children()
 	signal(SIGQUIT,SIG_IGN);
 
 	char err[256];
-	//初始化python环境
-/*	if(!InitPythonEnv())
-	{
-		syslog(LOG_EMERG,"the python environment is not configured!!!");
-		exit(EXIT_FAILURE);
-	}
-	*/
 
 	//初始化log环境
-	InitLog();
+	InitLog("/usr/local/apache_conf/cfg/zlog.conf");
 
 	pthread_mutex_init(&mutex,NULL);
 
@@ -147,7 +134,12 @@ int Children()
 		WriteLog(mainlog,FATAL,err);
 		exit(EXIT_FAILURE);
 	}
-	
+
+	if(tpool_init(10) != 0)
+	{
+		WriteLog(mainlog,INFO,"can't create the thread pool!!!");
+		exit(1);
+	}
 	WriteLog(mainlog,INFO,"the system start normally!!!");
 
 #ifdef WITH_MYSQL
@@ -170,16 +162,18 @@ int Children()
 		sprintf(err,"accpet from client:%s",inet_ntoa(clientAddr.sin_addr));
 		WriteLog(mainlog,INFO,err);
 
-		pthread_t thd;
+	/*	pthread_t thd;
 		int ret = pthread_create(&thd,NULL,ProcSocket,&sock);
 		if(ret != 0)
 		{
 			sprintf(err,"failed to create the thread to proc this socket from %s.",inet_ntoa(clientAddr.sin_addr));
 			WriteLog(mainlog,INFO,err);
-		}
+		}*/
+		tpool_add_work(ProcSocket,(void*)&sock);
 	}
+	pthread_mutex_destroy(&mutex);
+	tpool_uninit();
 	delete serverSock;
-//	UnInitPythonEnv();
 	UnInitLog();
 	WriteLog(mainlog,INFO,"the system is ready to exit!!!");
 	return 0;
@@ -199,11 +193,15 @@ void* ProcSocket(void *arg)
 		fd_set fds;
 		FD_ZERO(&fds);
 		struct timeval tv;
-		tv.tv_sec = 10;
+		tv.tv_sec = 2;
 		tv.tv_usec = 0;
 		FD_SET(sock,&fds);
 		if(select(sock + 1,&fds,NULL,NULL,&tv) <= 0)
+		{
+			sprintf(err,"%s timeout.",clientAddr);
+			WriteLog(mainlog,DEBUG,err);
 			break;
+		}
 		char buf[BUF_LENGTH];
 		memset(buf,0,BUF_LENGTH);
 		int retByte = 0;
@@ -260,6 +258,8 @@ void* ProcSocket(void *arg)
 					{
 						ret_value.push_back(errInfo);
 					}
+					else
+						ret_value.push_back(SUCCESS);
 				}
 #ifdef WITH_MYSQL
 				else if(p.second.compare(STRSQL) == 0)
@@ -295,11 +295,14 @@ void* ProcSocket(void *arg)
 				response.append("|");
 		}
 		WriteLog(mainlog,INFO,response.c_str());
-		acceptSock->SendErrorInfo(response.c_str());
+		if(acceptSock->SendErrorInfo(response.c_str()) < 0)
+		{
+			break;
+		}
 	}
 	delete acceptSock;
 
-	pthread_exit(NULL);
+//	pthread_exit(NULL);
 }
 #ifdef WITH_MYSQL
 typedef struct LimitSizeParam{

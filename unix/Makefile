@@ -4,60 +4,71 @@ TARGET_DIR=tmp
 TARGET=${TARGET_DIR}/apache_conf
 OBJS=${TARGET_DIR}/main.o
 
+ACTIONDEPS=${SRC_DIR}/redirect.cpp ${SRC_DIR}/mime.cpp ${SRC_DIR}/filePermission.cpp ${SRC_DIR}/directoryAccess.cpp ${SRC_DIR}/errorDocument.cpp ${SRC_DIR}/deleteRootDirectory.cpp ${SRC_DIR}/compress.cpp ${SRC_DIR}/directoryIndex.cpp ${SRC_DIR}/hostBind.cpp
+
+ifeq ($(FLAGS),-DWITH_MYSQL)
+LIBS=liblog.so libsock.so libprocMySQL.so libsqlOperation.so libftp.so libtools.so libconfig.so libvirtualHost.so libaction.so libhostOperation.so libthreadpool.so
+else
+LIBS=libsock.so libftp.so libtools.so libconfig.so liblog.so libvirtualHost.so libaction.so libhostOperation.so libthreadpool.so
+endif
+
 .PHONY:all
 ifeq ($(FLAGS),-DWITH_MYSQL)
-all:${TARGET_DIR}/libsock.so ${TARGET_DIR}/libsqlOperation.so ${TARGET_DIR}/libftp.so ${TARGET_DIR}/libtools.so ${TARGET_DIR}/libhostOperation.so ${TARGET_DIR}/libconfig.so ${TARGET_DIR}/liblog.so ${TARGET_DIR}/libprocMySQL.so ${TARGET_DIR}/libaction.so ${TARGET_DIR}/libvirtualHost.so ${TARGET} cleanObj
+all:${LIBS} ${TARGET} cleanObj
 else
-all:${TARGET_DIR}/libsock.so ${TARGET_DIR}/libftp.so ${TARGET_DIR}/libtools.so ${TARGET_DIR}/libhostOperation.so ${TARGET_DIR}/libconfig.so ${TARGET_DIR}/liblog.so ${TARGET_DIR}/libaction.so ${TARGET_DIR}/libvirtualHost.so ${TARGET} cleanObj
+all:${LIBS} ${TARGET} cleanObj
 endif
 
-${TARGET_DIR}/liblog.so:${SRC_DIR}/log.cpp
+liblog.so:${SRC_DIR}/log.cpp
 	g++ -w -g -D__unix -fPIC -shared $? -lzlog -L. -o $@
 
-ifeq ($(FLAGS),-DWITH_MYSQL)
-${TARGET_DIR}/libsqlOperation.so:${SRC_DIR}/sqlOperation.cpp
-	g++ -w -g -D__unix -fPIC -shared $? -o $@
-endif
-
-${TARGET_DIR}/libsock.so:${SRC_DIR}/sock.cpp
+libsock.so:${SRC_DIR}/sock.cpp
 	g++ -w -g -D__unix -fPIC -shared $? -o $@
 
-${TARGET_DIR}/libtools.so:${SRC_DIR}/tools.cpp
+libtools.so:${SRC_DIR}/tools.cpp
 	g++ -w -g -D__unix -fPIC -shared $? -o $@
 
-${TARGET_DIR}/libhostOperation.so:${SRC_DIR}/hostOperation.cpp
+libftp.so:${SRC_DIR}/ftp.cpp
 	g++ -w -g -D__unix -fPIC -shared $? -o $@
 
-${TARGET_DIR}/libftp.so:${SRC_DIR}/ftp.cpp
-	g++ -w -g -D__unix -fPIC -shared $? -o $@
-
-${TARGET_DIR}/libconfig.so:${SRC_DIR}/config.cpp
-	g++ -w -g -D__unix -fPIC -shared $? -o $@
-
-${TARGET_DIR}/libvirtualHost.so:${SRC_DIR}/common.cpp
-	g++ -w -D__unix -fPIC -shared $? -o $@
-
-${TARGET_DIR}/libaction.so:${SRC_DIR}/action.cpp
+libconfig.so:${SRC_DIR}/config.cpp
 	g++ -w -g -D__unix -fPIC -shared $? -o $@
 
 ifeq ($(FLAGS),-DWITH_MYSQL)
-${TARGET_DIR}/libprocMySQL.so:${SRC_DIR}/procMySQL.cpp
+libsqlOperation.so:${SRC_DIR}/sqlOperation.cpp
+	g++ -w -g -D__unix -fPIC -shared $? -o $@
+
+libprocMySQL.so:${SRC_DIR}/procMySQL.cpp
 	g++ -w -g -D__unix -fPIC -shared $? -o $@ -lmysqlclient -L/usr/lib/mysql/
 endif
 
+libvirtualHost.so:${SRC_DIR}/common.cpp
+	g++ -w -D__unix -fPIC -shared $? -o $@
+
+libaction.so:${ACTIONDEPS}
+	g++ -w -g -D__unix -fPIC -shared $? -o $@
+
+libhostOperation.so:${SRC_DIR}/hostOperation.cpp ${SRC_DIR}/action.h
+	g++ -w -g -D__unix -fPIC -shared $? -o $@
+
+libthreadpool.so:${SRC_DIR}/threadpool.cpp
+	g++ -w -D__unix -fPIC -shared $? -o $@ -lpthread
+
 ifeq ($(FLAGS),-DWITH_MYSQL)
 ${TARGET}:${OBJS}
-	g++ $? -g -lhostOperation -lsock -ltools -lftp -lconfig -lpthread -lvirtualHost -laction -lsqlOperation -lprocMySQL -llog -L./tmp/ -o $@ 
+	g++ $? -g ${LIBS} -L. -o $@ 
 else
 ${TARGET}:${OBJS}
-	g++ $? -g -lhostOperation -lsock -ltools -lftp -lconfig -lpthread -lvirtualHost -laction -llog -L./tmp/ -o $@ 
+	g++ $? -g ${LIBS} -L. -o $@ 
 endif
 
 ${TARGET_DIR}/main.o:main.cpp
 	g++ -w -g $(FLAGS) -c $? -o $@
 
 cleanObj:
+	cp ${LIBS} tmp/
 	rm ${OBJS}
+	rm ${LIBS}
 
 .PHONY:clean
 
@@ -67,18 +78,25 @@ clean:
 
 .PHONY:install
 
+OLDLIBS=/usr/lib/libftp.so /usr/lib/libtools.so /usr/lib/libconfig.so /usr/lib/libsock.so /usr/lib/libvirtualHost.so /usr/lib/libaction.so /usr/lib/libhostOperation.so /usr/lib/libsqlOperation.so /usr/lib/libprocMySQL.so /usr/lib/libthreadpool.so /usr/lib/liblog.so /usr/lib/libzlog.so.1.1
+
 install:
-	-mkdir /usr/local/apache_conf
-	-mkdir /usr/local/apache_conf/log
-	cp ${TARGET_DIR}/*.so /usr/lib
-	cp libzlog.so.1.1 /usr/lib/
+	-rm -f ${OLDLIBS}
+	-mkdir -p /usr/local/apache_conf
+	-mkdir -p /usr/local/apache_conf/log
+	-mkdir -p /usr/local/apache_conf/lib
+	-mkdir -p /usr/local/apache_conf/cfg
+	-mkdir -p /usr/local/apache_conf/bin
+	cp ${TARGET_DIR}/*.so /usr/local/apache_conf/lib
+	cp ${TARGET_DIR}/libzlog.so.1.1 /usr/local/apache_conf/lib
+	cp ${TARGET_DIR}/apache_lib.conf /etc/ld.so.conf.d/
 	/sbin/ldconfig
-	cp ${TARGET_DIR}/apache_conf /usr/local/apache_conf
-	cp ${TARGET_DIR}/zlog.conf /usr/local/apache_conf
-	cp ${TARGET_DIR}/apache_conf.conf /usr/local/apache_conf
+	cp ${TARGET_DIR}/apache_conf /usr/local/apache_conf/bin
+	cp ${TARGET_DIR}/zlog.conf /usr/local/apache_conf/cfg
+	cp ${TARGET_DIR}/apache_conf.conf /usr/local/apache_conf/cfg
 .PHONY:uninstall
 
 uninstall:
-	rm -f /usr/lib/libhostOperation.so /usr/lib/libsock.so /usr/lib/libftp.so /usr/lib/libtools.so /usr/lib/libconfig.so /usr/lib/liblog.so /usr/lib/libvirtualHost.so /usr/lib/libaction.so /usr/lib/libaction.so
+	-rm /etc/ld.so.conf.d/apache_lib.conf
+	/sbin/ldconfig
 	-rm -rf /usr/local/apache_conf
-	rm -rf /usr/lib/libzlog.so.1.1
