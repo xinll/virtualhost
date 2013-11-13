@@ -9,4 +9,4 @@
 #include <vector>
 using namespace std;
 
-bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo);
+bool ProcHost(vector<pair<string,string> > &vt_param,string &errInfo);

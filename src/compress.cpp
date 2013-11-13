@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 
 static char log[] = "compress";
 bool Compress(vector<pair<string,string> > &vt_param, string &errInfo)
@@ -27,8 +28,9 @@ bool Compress(vector<pair<string,string> > &vt_param, string &errInfo)
 	
 	if(!ValidateParamEmpty(userName.c_str()) || !ValidateParamEmpty(zipName.c_str()))
 	{
-		errInfo.append("ftpName or zipName invalid.");
-		WriteLog(log,ERROR,"ftpName or zipName invalid.");
+		char info[] = "ftpName or zipName invalid.";
+		errInfo.append(info);
+		WriteLog(log,ERROR,info);
 		return false;
 	}
 
@@ -44,8 +46,9 @@ bool Compress(vector<pair<string,string> > &vt_param, string &errInfo)
 	DIR *d;
 	if((d = opendir(path.c_str())) == NULL)
 	{
-		errInfo.append("directory not exist.");
-		WriteLog(log,ERROR,"directory not exist.");
+		char info[] = "directory does not exist.";
+		errInfo.append(info);
+		WriteLog(log,ERROR,info);
 		return false;
 	}
 
@@ -55,8 +58,9 @@ bool Compress(vector<pair<string,string> > &vt_param, string &errInfo)
 	if(snprintf(buf,256,"zip -r -q %s ./* > /dev/null",zipPath.c_str()) >= 256)
 	{
 		chdir("/");
-		errInfo.append("the fileName is too long.");
-		WriteLog(log,ERROR,"the fileName is too long.");
+		char info[] = "the fileName is too long.";
+		errInfo.append(info);
+		WriteLog(log,ERROR,info);
 		return false;
 	}
 	int ret = system(buf);
@@ -64,7 +68,7 @@ bool Compress(vector<pair<string,string> > &vt_param, string &errInfo)
 
 	if(ret != -1 && WIFEXITED(ret) && (WEXITSTATUS(ret) == 0 || WEXITSTATUS(ret) == 12))
 	{
-		snprintf(buf,256,"chown %s:%s %s",userName.c_str(),userName.c_str(),zipPath.c_str());
+		snprintf(buf,256,"chown %s:%s %s > /dev/null",userName.c_str(),userName.c_str(),zipPath.c_str());
 		ret = system(buf);
 		if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
 		{
@@ -73,12 +77,19 @@ bool Compress(vector<pair<string,string> > &vt_param, string &errInfo)
 		}
 		else
 		{
-			errInfo.append("can't change the owner or group.");
+			char info[] = "can't change the owner or group.";
+			errInfo.append(info);
+			WriteLog(log,ERROR,info);
 			return false;
 		}
 	}
 	else
+	{
+		char info[] ="can't compress the directory";
+		errInfo.append(info);
+		WriteLog(log,ERROR,info);
 		return false;
+	}
 }
 
 string GetCmd(string &str,string &filePath,string &fileName)
@@ -86,7 +97,7 @@ string GetCmd(string &str,string &filePath,string &fileName)
 	string ret = "";
 	if(str.find("Zip") != string::npos)
 	{
-		ret.append("unzip -u ");
+		ret.append("unzip -o ");
 		ret.append(filePath);
 		ret.append(" > /dev/null");
 	}
@@ -147,8 +158,9 @@ bool UnCompress(vector<pair<string,string> > &vt_param, string &errInfo)
 	
 	if(!ValidateParamEmpty(userName.c_str()) || !ValidateParamEmpty(zipName.c_str()))
 	{
-		errInfo.append("ftpName or zipName invalid.");
-		WriteLog(log,ERROR,"ftpName or zipName invalid.");
+		char info[] = "ftpName or zipName invalid.";
+		errInfo.append(info);
+		WriteLog(log,ERROR,info);
 		return false;
 	}
 	
@@ -164,8 +176,9 @@ bool UnCompress(vector<pair<string,string> > &vt_param, string &errInfo)
 	//判断文件是否存在
 	if(access(zipPath.c_str(),W_OK) != 0)
 	{
-		errInfo.append("the file does not exist.");
-		WriteLog(log,ERROR,"the file does not exist");
+		char info[] = "the file does not exist.";
+		errInfo.append(info);
+		WriteLog(log,ERROR,info);
 		return false;
 	}
 
@@ -181,47 +194,101 @@ bool UnCompress(vector<pair<string,string> > &vt_param, string &errInfo)
 		sprintf(fileName,"/tmp/%d",t);
 		if(!ReadFile(&vt,fileName) || vt.size() != 1)
 		{
-			errInfo.append("can't get the file's type.");
-			WriteLog(log,ERROR,"can't get the file's type");
+			char info[] = "can't get the file's type.";
+			errInfo.append(info);
+			WriteLog(log,ERROR,info);
 			return false;
 		}
 		unlink(fileName);
 		string tmp = GetCmd(vt[0],zipPath,zipName);
 		if(tmp.empty())
 		{
-			errInfo.append("unknow compress format.");
-			WriteLog(log,ERROR,"unknow compress format.");
+			char info[] = "unknow compress format.";
+			errInfo.append(info);
+			WriteLog(log,ERROR,info);
 			return false;
 		}
 		DIR *dir = NULL;
 		if((dir = opendir(path.c_str())) == NULL)
 		{
-			sprintf(cmd,"mkdir -p %s",path.c_str());
+			sprintf(cmd,"mkdir -p -m 755 %s",path.c_str());
 			ret = system(cmd);
 		}
 		else
 		{
 			closedir(dir);
 		}
-		if(chdir(path.c_str()) != 0)
+		/*if(chdir(path.c_str()) != 0)
 		{
+			char info[] ="open the destination directory failed.";
+			errInfo.append(info);
+			WriteLog(log,ERROR,info);
+			return false;
+		}*/
+
+		time_t t = time(NULL);
+		char tmpDir[PATH_MAX];
+		sprintf(tmpDir,"/tmp/%d",t);
+		if(mkdir(tmpDir,S_IWUSR | S_IRUSR | S_IRGRP | S_IWGRP) != 0)
+		{
+			errInfo.append("can't create the tmp directory.");
 			return false;
 		}
+		if(chdir(tmpDir) != 0)
+		{
+			errInfo.append("change to the tmp directory failed.");
+			return false;
+		}
+		
 		ret =system(tmp.c_str());
 		chdir("/");
-		if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
+		if(ret != -1 && WIFEXITED(ret) && (WEXITSTATUS(ret) == 0 || WEXITSTATUS(ret) == 12))
 		{
+			sprintf(cmd,"chown -R %s:%s %s > /dev/null",userName.c_str(),userName.c_str(),tmpDir);
+			
+			ret = system(cmd);
+			if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
+			{
+				sprintf(cmd,"mv %s/* %s",tmpDir,path.c_str());
+				ret = system(cmd);
+				sprintf(cmd,"rm -rf %s",tmpDir);
+				system(cmd);
+				if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
+				{
+					WriteParam(log,vt_param,"success");
+					return true;
+				}
+				else
+				{
+					char info[] = "move form temp directory to destination failed.";
+					errInfo.append(info);
+					WriteLog(log,ERROR,info);
+					return false;
+				}
+			}
+			else
+			{
+				char info[] = "can't change the owner or group.";
+				errInfo.append(info);
+				WriteLog(log,ERROR,info);
+				return false;
+			}
 			return true;
 		}
 		else
 		{
+			WriteLog(log,ERROR,tmp.c_str());
+			char info[] = "uncompress the file failed.";
+			errInfo.append(info);
+			WriteLog(log,ERROR,info);
 			return false;
 		}
 	}
 	else
 	{
-		errInfo.append("can't get the file's type.");
-		WriteLog(log,ERROR,"can't get the file's type");
+		char info[] = "can't get the file's type.";
+		errInfo.append(info);
+		WriteLog(log,ERROR,info);
 		return false;
 	}
 	

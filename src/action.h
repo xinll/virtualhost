@@ -15,4 +15,6 @@
 #include "filePermission.h"
 #include "directoryIndex.h"
 #include "hostBind.h"
+#include "passwd.h"
+#include "vhost.h"
 #endif

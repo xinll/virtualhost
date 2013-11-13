@@ -17,7 +17,6 @@
 
 bool ReadFile(vector<string> *vt_conf,const char *fileName)
 {
-
 	fstream f;
 	f.open(fileName,ios::in | ios::out);
 	if(!f)	
@@ -43,7 +42,7 @@ bool ReadFile(vector<string> *vt_conf,const char *fileName)
 bool  WriteFile(vector<string> *vt_conf,const char *fileName)
 {
 	fstream fs;
-	fs.open(fileName,ios::out | ios::trunc);
+	fs.open(fileName,ios::out);
 	if(!fs)
 		return false;
 	vector<string>::iterator it;
@@ -105,11 +104,11 @@ string AddSlash(string &str)
 	return str;
 }
 
-string MakeConfPath(string &ftpName)
+string MakeConfPath(string ftpName)
 {
 	string dirPath = GetEnvVar("CONF_DIR");
 	if(dirPath.empty())
-		dirPath = "/etc/httpd/vhost.d/";
+		dirPath = CONF_DIR;
 	AddSlash(dirPath);
 	string path = dirPath + ftpName + ".conf";
 	return path;
@@ -267,38 +266,76 @@ bool IsEqualString(string first,string second)
 	return strncasecmp(f,s,n) == 0;
 }
 
-
-bool BakConf(string &userName)
+bool BakSysInfo()
 {
-	string dirPath = GetEnvVar("CONF_DIR");
-	if(dirPath.empty())
-	{
-		dirPath = "/etc/httpd/vhost.d/";
-	}
-	chdir(dirPath.c_str());
-
-	string backupWhat = userName;
-	backupWhat.append(".conf");
-
-	string backupDir = GetEnvVar("BACKUPDIR");
+	string backupDir = GetEnvVar(BACKUPDIR);
 	if(backupDir.empty())
-		backupDir = "/backup_main/";
-	
+		backupDir = BACKUPDIR;
+
 	DIR *dir;
 	if(NULL == (dir = opendir(backupDir.c_str())))
 	{
 		if(mkdir(backupDir.c_str(),0775) != 0)
 			return false;
 	}
-	closedir(dir);	
-	dirPath = AddSlash(dirPath);
-	backupDir = AddSlash(backupDir);
+	closedir(dir);
 
-	backupDir.append("vhost-conf.zip");
+	backupDir = AddSlash(backupDir);
+	backupDir.append("sysuser-backup.zip > /dev/null");
+	
+	chdir("/etc/");
+	string cmd = "zip -qu ";
+	cmd.append(backupDir);
+	cmd.append(" ");
+	cmd.append("passwd shadow group gshadow");
+	int ret = system(cmd.c_str());
+	chdir("/");
+
+	if(ret != -1 && WIFEXITED(ret) && (WEXITSTATUS(ret) == 0 || WEXITSTATUS(ret) == 12))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool BakConf()
+{
+	string dirPath = GetEnvVar("CONF_DIR");
+	if(dirPath.empty())
+	{
+		dirPath = CONF_DIR;
+	}
+	if(chdir(dirPath.c_str()) != 0)
+		return false;
+
+	string backupDir = GetEnvVar("BACKUPDIR");
+	if(backupDir.empty())
+		backupDir = BACKUPDIR;
+	
+	DIR *dir;
+	if(NULL == (dir = opendir(backupDir.c_str())))
+	{
+		if(mkdir(backupDir.c_str(),0775) != 0)
+		{
+			chdir("/");
+			return false;
+		}
+	}
+	else
+		closedir(dir);	
+
+	backupDir = AddSlash(backupDir);
+	backupDir.append("vhost-conf.zip > /dev/null");
+
 	string cmd;
 	cmd = "zip -qu ";
 	cmd.append(backupDir);
 	cmd.append(" ");
+	//改为备份所有
+	string backupWhat = "./*";
 	cmd.append(backupWhat);
 	int ret = system(cmd.c_str());
 	chdir("/");
@@ -317,12 +354,12 @@ bool RestoreConf(string &userName)
 	string dirPath = GetEnvVar("CONF_DIR");
 	if(dirPath.empty())
 	{
-		dirPath = "/etc/httpd/vhost.d/";
+		dirPath = CONF_DIR;
 	}
 
 	string backupDir = GetEnvVar("BACKUPDIR");
 	if(backupDir.empty())
-		backupDir = "/backup_main/";
+		backupDir = BACKUPDIR; 
 
 	string restoreWhat = userName;
 	restoreWhat.append(".conf");
@@ -338,6 +375,7 @@ bool RestoreConf(string &userName)
 	cmd.append(" ");
 	cmd.append("-d ");
 	cmd.append(dirPath);
+	cmd.append(" > /dev/null");
 	int ret = system(cmd.c_str());
 
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
@@ -517,15 +555,12 @@ bool WriteVirtualHost(CVirtualHost *virtualHost,string &errInfo,char *category)
 	string userName = virtualHost->GetFileName();
 	if(!virtualHost->SaveFile())
 	{
+		errInfo.append("write the config file failed.");
 		string err = virtualHost->GetLastErrorStr();
-		errInfo.append(err);
-		char tmp[256];
-		strcpy(tmp,err.c_str());
-		WriteLog(category,ERROR,tmp);
+		WriteLog(category,ERROR,err.c_str());
 		if(RestoreConf(userName))
 		{
-			errInfo.append("restore the config file failed:");
-			errInfo.append(userName);
+			errInfo.append("restore the config file failed.");
 			char tmp[256];
 			sprintf(tmp,"restore the config file failed:%s.conf",userName.c_str());
 			WriteLog(category,ERROR,tmp);
@@ -534,6 +569,7 @@ bool WriteVirtualHost(CVirtualHost *virtualHost,string &errInfo,char *category)
 	}
 	return true;
 }
+
 bool InitEnv(CVirtualHost **virtualHost,string &userName,string &errInfo,char *category)
 {
 	 (*virtualHost) = CVirtualHost::GetVirtualHost(userName);
@@ -547,7 +583,7 @@ bool InitEnv(CVirtualHost **virtualHost,string &userName,string &errInfo,char *c
 		return false;
 	}
 
-	if(!BakConf(userName))
+/*	if(!BakConf(userName))
 	{
 		errInfo.append("bak the config file failed:");
 		errInfo.append(userName);
@@ -557,15 +593,13 @@ bool InitEnv(CVirtualHost **virtualHost,string &userName,string &errInfo,char *c
 		WriteLog(category,ERROR,err);
 
 		return false;
-	}
+	}*/
 
 	if(!(*virtualHost)->LoadFile())
 	{
 		string err = (*virtualHost)->GetLastErrorStr();
 		errInfo.append(err);
-		char tmp[256];
-		strcpy(tmp,err.c_str());
-		WriteLog(category,ERROR,tmp);
+		WriteLog(category,ERROR,err.c_str());
 		return false;
 	}
 	return true;

@@ -10,6 +10,7 @@
 #include "stdio.h"
 #include "defines.h"
 #include "redirect.h"
+#include <string.h>
 
 static char redirect[] = "redirectLog";
 void AddRedirect(string redirectFrom,string redirectTo,CVirtualHost *virtualHost)
@@ -86,6 +87,12 @@ void AddRedirect(string redirectFrom,string redirectTo,CVirtualHost *virtualHost
 	}
 	directive="RewriteRule";
 	vt_tmpParam.push_back("^(.*)$");
+	if(strncmp(redirectTo.c_str(),"http",4) !=0 )
+	{
+		string tmp = redirectTo;
+		redirectTo = "http://";;
+		redirectTo.append(tmp);
+	}
 	redirectTo.append("$1");
 	vt_tmpParam.push_back(redirectTo);
 	vt_tmpParam.push_back("[L,R=301]");
@@ -97,28 +104,41 @@ void AddRedirect(string redirectFrom,string redirectTo,CVirtualHost *virtualHost
 }
 
 void DeleteRedirect(string redirectFrom,CVirtualHost *virtualHost)
-
 {
 	string directive = "RewriteCond";
-	string tmp = "^";
-	tmp.append(redirectFrom);
-	tmp.append("$");
-	string param[] = {"%{HTTP_POST}",tmp};
-	vector<string>::iterator it = virtualHost->FindGlobalDirective(directive,param,2,virtualHost->GetIterator());
-	if(it != virtualHost->GetEndIterator())
+	vector<string>::iterator it;
+	if(redirectFrom.empty())
 	{
-		string log = "line delete: ";
-		log.append(*it);
-		char buf[256];
-		sprintf(buf,"%s from %s",log.c_str(),virtualHost->GetFileName().c_str());
-		WriteLog(redirect,INFO,buf);
-		virtualHost->EraseItem(it);
+		it = virtualHost->FindGlobalDirective(directive,NULL,0,virtualHost->GetIterator());
+		while(it != virtualHost->GetEndIterator())
+		{
+			virtualHost->EraseItem(it);
+			virtualHost->EraseItem(it);
+			it = virtualHost->FindGlobalDirective(directive,NULL,0,virtualHost->GetIterator());
+		}
+	}
+	else
+	{
+		string tmp = "^";
+		tmp.append(redirectFrom);
+		tmp.append("$");
+		string param[] = {"%{HTTP_POST}",tmp};
+		it = virtualHost->FindGlobalDirective(directive,param,2,virtualHost->GetIterator());
+		if(it != virtualHost->GetEndIterator())
+		{
+			string log = "line delete: ";
+			log.append(*it);
+			char buf[256];
+			sprintf(buf,"%s from %s",log.c_str(),virtualHost->GetFileName().c_str());
+			WriteLog(redirect,INFO,buf);
+			virtualHost->EraseItem(it);
 
-		log = "line delete: ";
-		log.append(*it);
-		sprintf(buf,"%s from %s",log.c_str(),virtualHost->GetFileName().c_str());
-		WriteLog(redirect,INFO,buf);
-		virtualHost->EraseItem(it);
+			log = "line delete: ";
+			log.append(*it);
+			sprintf(buf,"%s from %s",log.c_str(),virtualHost->GetFileName().c_str());
+			WriteLog(redirect,INFO,buf);
+			virtualHost->EraseItem(it);
+		}
 	}
 	directive = "RewriteRule";
 	it = virtualHost->FindGlobalDirective(directive,NULL,0,virtualHost->GetIterator());
@@ -141,10 +161,10 @@ bool ProcRedirect(vector<pair<string,string> > &vt_param,string &errInfo)
 	string userName = GetValue(USERNAME,vt_param);
 	string url = GetValue(URL,vt_param);
 
-	if(!ValidateParamEmpty(userName.c_str()) || !ValidateParamEmpty(url.c_str()))
+	if(!ValidateParamEmpty(userName.c_str()))
 	{
-		errInfo.append("ftpName or url not valid.");
-		WriteLog(redirect,ERROR,"ftpName or url invalid");
+		errInfo.append("ftpName not valid.");
+		WriteLog(redirect,ERROR,"ftpName invalid");
 		return false;
 	}
 
@@ -153,28 +173,36 @@ bool ProcRedirect(vector<pair<string,string> > &vt_param,string &errInfo)
 
 	if(success)
 	{
-		vector<string> vt_url;
-		vector<string> vt_from;
-		vector<string> vt_tmp;
-		string to = "";
-		SplitByComas(url,vt_url,';');
-		int url_size = vt_url.size();
-		for(int i = 0; i < url_size; i++)
+		if(url.empty())
 		{
-			to = "";
-			vt_tmp.clear();
-			SplitByComas(vt_url[i],vt_tmp,':');
-			vt_from.clear();	
-			SplitByComas(vt_tmp[0],vt_from);
-			if(vt_tmp.size() > 1)
-				to = vt_tmp[1];
-			int size = vt_from.size();
-			for(int k = 0; k < size; k++)
+			string tmp = "";
+			DeleteRedirect(tmp,virtualHost);
+		}
+		else
+		{
+			vector<string> vt_url;
+			vector<string> vt_from;
+			vector<string> vt_tmp;
+			string to = "";
+			SplitByComas(url,vt_url,';');
+			int url_size = vt_url.size();
+			for(int i = 0; i < url_size; i++)
 			{
-				if(!to.empty())
-					AddRedirect(vt_from[k],to,virtualHost);
-				else
-					DeleteRedirect(vt_from[k],virtualHost);
+				to = "";
+				vt_tmp.clear();
+				SplitByComas(vt_url[i],vt_tmp,':');
+				vt_from.clear();	
+				SplitByComas(vt_tmp[0],vt_from);
+				if(vt_tmp.size() > 1)
+					to = vt_tmp[1];
+				int size = vt_from.size();
+				for(int k = 0; k < size; k++)
+				{
+					if(!to.empty())
+						AddRedirect(vt_from[k],to,virtualHost);
+					else
+						DeleteRedirect(vt_from[k],virtualHost);
+				}
 			}
 		}
 	}

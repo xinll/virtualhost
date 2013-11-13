@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "defines.h"
-#include <syslog.h>
 
 extern pthread_mutex_t mutex;
 vector<CVirtualHost*> CVirtualHost:: vt_virtualHost;
@@ -35,7 +34,7 @@ bool CVirtualHost::LoadFile()
 	if(!ReadFile(&vt_conf,path.c_str()))
 	{
 		char buf[256];
-		sprintf(buf,"read confile file %s.conf failed",ftpName.c_str());
+		sprintf(buf,"read config file %s.conf failed",ftpName.c_str());
 		errorInfo = buf;
 		vt_conf.clear();
 		return false;
@@ -46,11 +45,19 @@ bool CVirtualHost::LoadFile()
 bool CVirtualHost::SaveFile()
 {
 	string path = MakeConfPath(ftpName);
-	if(!WriteFile(&vt_conf,path.c_str()))
+
+	time_t t = time(NULL);
+	char name[30];
+	sprintf(name,"%d",t);
+	string tmp = MakeConfPath(name);
+
+	if(!WriteFile(&vt_conf,tmp.c_str()) || rename(tmp.c_str(),path.c_str()) != 0)
+//	if(!WriteFile(&vt_conf,path.c_str()))
 	{
 		char buf[256];
 		sprintf(buf,"write config file %s.conf failed",ftpName.c_str());
 		errorInfo = buf;
+		unlink(tmp.c_str());
 		return false;
 	}
 	return true;

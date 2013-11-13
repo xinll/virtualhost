@@ -7,7 +7,7 @@
 
 #include "tools.h"
 #include "log.h"
-#include "string.h"
+#include <string.h>
 #include "defines.h"
 #include "errorDocument.h"
 #include "common.h"
@@ -26,8 +26,9 @@ bool ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
 
 	if(!ValidateParamEmpty(errorNum.c_str()) || !ValidateParamEmpty(userName.c_str()))
 	{
-		WriteLog(errorDocument,ERROR,"errorNum or userName invalid");
-		errInfo.append("ftpName or errorNum invalid.");
+		char info[] = "errorNum or ftpName invalid.";
+		WriteLog(errorDocument,ERROR,info);
+		errInfo.append(info);
 		return false;
 	}
 
@@ -48,9 +49,6 @@ bool ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
 		vector<string>::iterator it_directive = virtualHost->FindGlobalDirective(directive,par,1,virtualHost->GetIterator());
 		if(it_directive != virtualHost->GetEndIterator())
 		{
-			char tmp[256];
-			strcpy(tmp,(*it_directive).c_str());
-			WriteLog(errorDocument,INFO,tmp);
 			it_directive = virtualHost->EraseItem(it_directive);
 		}
 		else

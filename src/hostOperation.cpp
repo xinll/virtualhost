@@ -11,70 +11,64 @@
 #include <stdlib.h>
 #include "log.h"
 
-bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
+static char log[] = "virtualhost";
+
+bool ProcHost(vector<pair<string,string> > &vt_param,string &errInfo)
 {
+	bool success = true;
 	if(vt_param.size() < 2)
 	{
-		errInfo.append("too less param. ");
+		errInfo.append("too less param.");
 		return false;
 	}
 	pair<string,string> p = vt_param[1];
 	if(!IsEqualString(p.first,NFUNC))
 	{
-		errInfo.append("error param:nfunc. ");
+		errInfo.append("error param:nfunc.");
 		return false;
 	}
 	string value = p.second;
-	if(IsEqualString(value,CREATEHOST))
-	{
-		//添加虚拟主机操作
-	/*	if(!AddHost(vt_param))
-			return false;*/
-	}
-	else if(IsEqualString(value,ERRORDOCUMENT))
+
+	if(IsEqualString(value,ERRORDOCUMENT))
 	{
 		//修改错误页面
 		if(!ProcErrorDocument(vt_param,errInfo))
+		{
 			return false;
+		}
 	}
 	else if(IsEqualString(value,FILEPERMISSION))
 	{
 		//脚本权限
 		if(!ProcFilePermission(vt_param,errInfo))
+		{
 			return false;
+		}
 	}
 
 	else if(IsEqualString(value,RESTORECONF))
 	{
-		string ftpName = "";
-		for(int i = 2; i < vt_param.size(); i++)
-		{
-			if(IsEqualString(vt_param[i].first,USERNAME))
-			{
-				ftpName = vt_param[i].second;
-				break;
-			}
-		}
+		string ftpName = GetValue(USERNAME,vt_param);
 
 		if(ftpName.empty())
 		{
-			errInfo.append("ftpName cant't be empty ");
+			errInfo.append("ftpName cant't be empty.");
 			return false;
 		}
 		else
 		{
 			if(!RestoreConf(ftpName))
 			{
-				errInfo.append("failed to restore the config filei:");
-				errInfo.append(ftpName);
-				errInfo.append(". ");
+				errInfo.append("failed to restore the config file.");
 				return false;
 			}
+			goto RESTART;
 		}
 	}
 	else if(IsEqualString(value,DELETEDIR))
 	{
 		DeleteRootDirectory(vt_param,errInfo);
+		return true;
 	}
 	else if(IsEqualString(value,REDIRECT))
 	{
@@ -109,24 +103,46 @@ bool ProcHost(vector<pair<string,string> > vt_param,string &errInfo)
 		if(!ProcBind(vt_param,errInfo))
 			return false;
 	}
+	else if(IsEqualString(value,PASSWD))
+	{
+		return ProcPasswd(vt_param,errInfo);
+	}
+	else if(IsEqualString(value,CREATEHOST))
+	{
+		if(!CreateVHost(vt_param,errInfo))
+		{
+			if(errInfo.empty())
+				errInfo.append("create the virtualhost failed.");
+			return false;
+		}
+	}
 	else
 	{
 		errInfo.append("unknow operation:");
 		errInfo.append(value);
 		return false;
 	}
+
+	if(!BakConf())
+	{
+		char info[] ="bak the config file failed.";
+		WriteLog(log,ERROR,info);
+		//errInfo.append(info);
+		//success = false;
+	}
+
+RESTART:
 	int ret = system("/sbin/service httpd reload>/dev/null");
 	
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
 	{
-		//WriteLog(INFO,"restart apache success.");
+		return success;
 	}
 	else
 	{
-		errInfo.append("failed to restart apache. ");
+		errInfo.append("failed to restart apache.");
 		return false;
 	}
-	return true;
 }
 
 /*bool AddHost(vector<pair<string,string> > &vt_param)

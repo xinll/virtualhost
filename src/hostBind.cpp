@@ -25,7 +25,7 @@ bool ProcBind(vector<pair<string,string> > &vt_param,string &error)
 
 	if(!ValidateParamEmpty(userName.c_str()) || !ValidateParamEmpty(bind.c_str()))
 	{
-		char info[] = "ftpName or index invalid";
+		char info[] = "ftpName or host invalid.";
 		WriteLog(log,ERROR,info);
 		error.append(info);
 		return false;
@@ -66,7 +66,6 @@ bool ProcBind(vector<pair<string,string> > &vt_param,string &error)
 		virtualHost->AddDirective(directive,it,vt,4);
 		success = WriteVirtualHost(virtualHost,error,log);
 	}
-
 	success ? WriteParam(log,vt_param,"success") : WriteParam(log,vt_param,"failed");
 
 	CVirtualHost::ReleaseVirtualHost(userName);

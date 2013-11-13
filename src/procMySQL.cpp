@@ -209,10 +209,10 @@ long long GetDataBaseSize(string host,string user,string pwd,string db,string &e
 	
 	if(!mysql_real_connect(&mysql,host.c_str(),user.c_str(),pwd.c_str(),db.c_str(),port,NULL,0))
 	{
-		;//连接数据库失败
-		errInfo.append("can't connect the mysql server!!!");
+		//连接数据库失败
 		char err[1024];
 		sprintf(err,"can't connect the mysql server:%s",mysql_error(&mysql));
+		errInfo.append(err);
 		WriteLog(category,ERROR,err);
 		return -1;
 	}
@@ -258,6 +258,7 @@ bool LimitMySQLSize(string host,string user,string pwd,string ftpName,string db,
 	{
 		char err[1024];
 		sprintf(err,"can't connect the mysql server:%s",mysql_error(&mysql));
+		//errInfo.append(err);
 		WriteLog(category,ERROR,err);
 		return false;
 	}

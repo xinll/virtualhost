@@ -24,7 +24,7 @@ bool ProcIndex(vector<pair<string,string> > &vt_param,string &error)
 
 	if(!ValidateParamEmpty(userName.c_str()) || !ValidateParamEmpty(index.c_str()))
 	{
-		char info[] = "ftpName or index invalid";
+		char info[] = "ftpName or index invalid.";
 		WriteLog(log,ERROR,info);
 		error.append(info);
 		return false;

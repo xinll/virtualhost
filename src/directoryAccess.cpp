@@ -11,6 +11,8 @@
 #include "directoryAccess.h"
 #include <string.h>
 #include "log.h"
+#include <dirent.h>
+#include <sys/types.h>
 
 static char directoryAccess[] = "directoryAccessLog";
 
@@ -38,7 +40,9 @@ bool AddAccessDirNotEmptyIpEmpty(CVirtualHost *virtualHost,string &dir,bool allo
 	if(it == virtualHost->GetEndIterator())
 	{
 		vt_param.clear();
-		it = virtualHost->GetIterator(1);
+		//it = virtualHost->GetIterator(1);
+		it = virtualHost->FindNode(nodeName,vt_param,virtualHost->GetIterator());
+
 		string t = "\"";
 		t.append(dir);
 		t.append("\"");
@@ -46,15 +50,18 @@ bool AddAccessDirNotEmptyIpEmpty(CVirtualHost *virtualHost,string &dir,bool allo
 		it = virtualHost->AddNode(nodeName,it,vt_param);
 		vt_param.clear();
 		if(allow)
-			vt_param.push_back("deny,allow");
-		else
+			//vt_param.push_back("deny,allow");
 			vt_param.push_back("allow,deny");
+		else
+			//vt_param.push_back("allow,deny");
+			vt_param.push_back("deny,allow");
 		it = virtualHost->AddDirective(directive,it,vt_param,8);
 		it++;
 		vt_param.clear();
 		vt_param.push_back("from");
 		vt_param.push_back("all");
-		directive = allow ? DENY : ALLOW;
+		//directive = allow ? DENY : ALLOW;
+		directive = allow ? ALLOW : DENY;
 		it = virtualHost->AddDirective(directive,it,vt_param,8);
 	}
 	else
@@ -75,16 +82,19 @@ bool AddAccessDirNotEmptyIpEmpty(CVirtualHost *virtualHost,string &dir,bool allo
 		it++;
 		vt_param.clear();
 		if(allow)
-			vt_param.push_back("deny,allow");
-		else
+			//vt_param.push_back("deny,allow");
 			vt_param.push_back("allow,deny");
+		else
+			//vt_param.push_back("allow,deny");
+			vt_param.push_back("deny,allow");
 		directive = ORDER;
 		it = virtualHost->AddDirective(directive,it,vt_param,8);
 		it++;
 		vt_param.clear();
 		vt_param.push_back("from");
 		vt_param.push_back("all");
-		directive = allow ? DENY : ALLOW;
+		//directive = allow ? DENY : ALLOW;
+		directive = allow ? ALLOW : DENY;
 		virtualHost->AddDirective(directive,it,vt_param,8);
 	}
 	return true;
@@ -100,7 +110,9 @@ bool AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip,string 
 	if(it == virtualHost->GetEndIterator())
 	{
 		vt_param.clear();
-		it = virtualHost->GetIterator(1);
+	//	it = virtualHost->GetIterator(1);
+		it = virtualHost->FindNode(nodeName,vt_param,virtualHost->GetIterator());
+
 		string t = "\"";
 		t.append(dir);
 		t.append("\"");
@@ -108,15 +120,17 @@ bool AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip,string 
 		it = virtualHost->AddNode(nodeName,it,vt_param);
 		vt_param.clear();
 		if(allow)
-			vt_param.push_back("deny,allow");
-		else
+			//vt_param.push_back("deny,allow");
 			vt_param.push_back("allow,deny");
+		else
+			//vt_param.push_back("allow,deny");
+			vt_param.push_back("deny,allow");
 		it = virtualHost->AddDirective(directive,it,vt_param,8);
 		it++;
 		if(allow)
-			directive = DENY;
+			directive = ALLOW; //DENY;
 		else
-			directive = ALLOW;
+			directive = DENY; //ALLOW;
 		vt_param.clear();
 		vt_param.push_back("from");
 		vt_param.push_back("all");
@@ -126,7 +140,8 @@ bool AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip,string 
 		vt_param.clear();
 		vt_param.push_back("from");
 		vt_param.push_back(ip);
-		directive = allow ? ALLOW : DENY;
+		//directive = allow ? ALLOW : DENY;
+		directive = allow ? DENY : ALLOW;
 		virtualHost->AddDirective(directive,it,vt_param,8);
 	}
 	else
@@ -143,15 +158,17 @@ bool AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip,string 
 			vt_param.clear();
 			directive = ORDER;
 			if(allow)
-				vt_param.push_back("deny,allow");
-			else
+				//vt_param.push_back("deny,allow");
 				vt_param.push_back("allow,deny");
+			else
+				//vt_param.push_back("allow,deny");
+				vt_param.push_back("deny,allow");
 			it = virtualHost->AddDirective(directive,it,vt_param,8);
 			it++;
 			if(allow)
-				directive = DENY;
+				directive = ALLOW; //DENY;
 			else
-				directive = ALLOW;
+				directive = DENY; //ALLOW;
 			vt_param.clear();
 			vt_param.push_back("from");
 			vt_param.push_back("all");
@@ -161,7 +178,8 @@ bool AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip,string 
 			vt_param.clear();
 			vt_param.push_back("from");
 			vt_param.push_back(ip);
-			directive = allow ? ALLOW : DENY;
+			//directive = allow ? ALLOW : DENY;
+			directive = allow ? DENY : ALLOW;
 			virtualHost->AddDirective(directive,it,vt_param,8);
 		}
 		else
@@ -175,26 +193,26 @@ bool AddAccessDirNotEmptyIpNotEmpty(CVirtualHost *virtualHost,string &ip,string 
 				vt_param.push_back("from");
 				vt_param.push_back(ip);
 				vector<string>::iterator i = virtualHost->FindNodeDirective(it,directive,vt_param);
-				if(i == virtualHost->GetEndIterator() && allow)
+				if(allow && i != virtualHost->GetEndIterator())
+				{
+					virtualHost->EraseItem(i);
+				}
+				if(!allow && i == virtualHost->GetEndIterator())
 				{
 					it_tmp++;
 					virtualHost->AddDirective(directive,it_tmp,vt_param,8);
 				}
-				if(i != virtualHost->GetEndIterator() && !allow)
-				{
-					virtualHost->EraseItem(i);
-				}
 			}
 			else
 			{
-				directive = allow ? ALLOW : DENY;
+				directive = DENY;
 				vt_param.clear();
 				vt_param.push_back("from");
 				vt_param.push_back(ip);
 				vector<string>::iterator i = virtualHost->FindNodeDirective(it,directive,vt_param);
-				if(i != virtualHost->GetEndIterator() && allow)
+			    if(i != virtualHost->GetEndIterator() && !allow)
 					virtualHost->EraseItem(i);
-				if(i == virtualHost->GetEndIterator() && !allow)
+			    if(i == virtualHost->GetEndIterator() && allow)
 				{
 					it_tmp++;
 					virtualHost->AddDirective(directive,it_tmp,vt_param,8);
@@ -218,23 +236,31 @@ bool DirectoryAccess(string &action,string &ip,string &dir,CVirtualHost *virtual
 	//限制网站的，只要限制根目录就OK
 	string path = GetEnvVar("USER_ROOT");
 	if(path.empty())
-		path = "/var/www/virtual/";
-	else
-		AddSlash(path);
+		path = USER_ROOT;
+	AddSlash(path);
 	path.append(virtualHost->GetFileName());
 	AddSlash(path);
 
 	path.append("home");
-	if(dir.empty())
+/*	if(dir.empty())
 	{
 		path.append("/wwwroot");
 	}
 	else
 	{
-		if(dir.c_str()[0] != '/')
-			path.append("/");
-		path.append(dir);
+		path = MakePath(path,dir);
+	}*/
+
+	MakePath(path,"/wwwroot");
+	MakePath(path,dir);
+	DIR *d = opendir(path.c_str());
+	if(d == NULL)
+	{
+		WriteLog(directoryAccess,ERROR,"the Directory does not exist");
+		return false;
 	}
+	closedir(d);
+
 	if(dir.empty())
 	{
 		bool success = false;
@@ -265,12 +291,27 @@ bool DirectoryAccess(string &action,string &ip,string &dir,CVirtualHost *virtual
 		vector<string> vt_tmp;
 		int mask = 0;
 		string tmp_ip;
+		//处理mask
+	//	vector<string> vt_mask;
 		for(int i = 0; i < size; i++)
 		{
-			tmp_ip = vt_ip[i];
-			mask = 32;
+			//处理mask
+		/*	vt_mask.clear();
+			SplitByComas(vt_ip[i],vt_mask,':');
+			tmp_ip = vt_mask[0];*/
+			
+			vt_tmp.clear();
+			SplitByComas(vt_ip[i],vt_tmp,':');
+			tmp_ip = vt_tmp[0];
+			if(vt_tmp.size() > 1)
+			{
+				tmp_ip.append("/");
+				tmp_ip.append(vt_tmp[1]);
+			}
+		/*	mask = 32;
 			vt_tmp.clear();
 			SplitByComas(vt_ip[i],vt_tmp,'.');
+			SplitByComas(vt_mask[0],vt_tmp,'.');
 			for(int j = vt_tmp.size() - 1; j >= 0; j--)
 			{
 				if(vt_tmp[j].compare("0") == 0)
@@ -285,7 +326,7 @@ bool DirectoryAccess(string &action,string &ip,string &dir,CVirtualHost *virtual
 				char strMask[128];
 				sprintf(strMask,"/%d",mask);
 				tmp_ip.append(strMask);
-			}
+			}*/
 			success = AddAccessDirNotEmptyIpNotEmpty(virtualHost,tmp_ip,path,allow);
 		}
 		return success;
@@ -307,8 +348,9 @@ bool ProcDirectoryAccess(vector<pair<string,string> > &vt_param,string &errInfo)
 
 	if(!ValidateParamEmpty(username.c_str()) || !ValidateParamEmpty(action.c_str()))
 	{
-		errInfo.append("ftpName or action not valid.");
-		WriteLog(directoryAccess,ERROR,"ftpName or action invalid");
+		char info[] = "ftpName or action invalid.";
+		errInfo.append(info);
+		WriteLog(directoryAccess,ERROR,info);
 		return false;
 	}
 

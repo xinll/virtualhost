@@ -24,13 +24,21 @@ typedef	int					MC_SOCKET;
 #define EXENTESION			".conf"
 #define CONF_PATH(name)		CONF_DIR CONF_NAME(name) EXENTESION
 #define NEWLINE             "\n"
-#define PERMISSION_ALLOW    1
-#define PERMISSION_DENY     0
+
+#define BACKUPDIR           "/backup_main/"
+#define USER_ROOT           "/var/www/virtual/"
+#define USER_SHELL          "/sbin/nologin"
+#define SUPE_HOME           "/home/xinll/code/unix/superhome"
+
 #endif
 
 #ifdef WIN32
 #define NEWLINE             "\r\n"
 #endif
+
+#define CGI_TPL             "php-cgi.sample"
+#define PHPINI_TPL          "php.ini.sample"
+#define CONF_TPL            "vhost-conf.sample"
 
 //ErrorDocumnet 错误页面
 #define ERROR404            404
@@ -71,7 +79,14 @@ typedef	int					MC_SOCKET;
 #define UNCOMPRESS          "uncompress"
 #define DIRECTORYINDEX      "DirectoryIndex"
 #define SERVERALIAS         "ServerAlias"
+#define PASSWD              "passwd"
 
+#define DOMAIN              "domain"
+#define MAX_TRANS           "maxtrans"
+
+//修改密码
+#define PWD                 "pwd"
+//绑定
 #define HOSTBIND            "host"
 //DirectoryIndex
 #define INDEX                "index"
@@ -89,7 +104,8 @@ typedef	int					MC_SOCKET;
 
 //修改脚本权限参数,对应于filePermission
 #define PERMISSION          "permission"
-//#define PERMISSION_FILE     "file"
+#define PERMISSION_ALLOW    1
+#define PERMISSION_DENY     0
 
 //增加虚拟主机参数,对应于createHost
 #define DEFAULTDOMAIN       "defaultDomain"
@@ -103,17 +119,8 @@ typedef	int					MC_SOCKET;
 #define MYSQLPW             "mySQLPw"
 #define FTPSERVER           "ftpServer"
 #define FTPPORT             "ftpPort"
-//#define MYSQLSERVER         "mySQLServer"
 #define MYSQLBAKNAME        "mySQLBakFileName"
-//#define MYSQLBASE           "mySQLDataBase"
 #define FTPDIR              "ftpDir"
-
-//#define USER_ROOT           "/var/www/virtual/"
-//#define USER_SHELL          "/sbin/nologin"
-//#define CONF_TPL            "vhost-conf.sample"
-//#define CGI_TPL             "php-cgi.sample"
-//#define SUPE_HOME           "/home/xinll/code/unix/superhome"
-//#define PHPINI_TPL          "php.ini.sample"
 
 #define SUCCESS             "10000:"
 #define PARAMEND            ".\r\n"
@@ -127,7 +134,6 @@ typedef	int					MC_SOCKET;
 #define FATAL               6
 
 //限制数据库大小
-//#define MYSQLADDR           "MySQLServer"
 #define DBNAME              "dbName"
 #define MYSQLSIZE           "size"
 

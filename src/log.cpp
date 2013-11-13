@@ -48,6 +48,7 @@ zlog_category_t* GetCategory(const char* category)
 
 void UnInitLog()
 {
+	pthread_mutex_destroy(&mutex_log);
 	zlog_fini();
 }
 
