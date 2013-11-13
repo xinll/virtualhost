@@ -4,7 +4,7 @@ TARGET_DIR=tmp
 TARGET=${TARGET_DIR}/apache_conf
 OBJS=${TARGET_DIR}/main.o
 
-ACTIONDEPS=${SRC_DIR}/redirect.cpp ${SRC_DIR}/mime.cpp ${SRC_DIR}/filePermission.cpp ${SRC_DIR}/directoryAccess.cpp ${SRC_DIR}/errorDocument.cpp ${SRC_DIR}/deleteRootDirectory.cpp ${SRC_DIR}/compress.cpp ${SRC_DIR}/directoryIndex.cpp ${SRC_DIR}/hostBind.cpp
+ACTIONDEPS=${SRC_DIR}/redirect.cpp ${SRC_DIR}/mime.cpp ${SRC_DIR}/filePermission.cpp ${SRC_DIR}/directoryAccess.cpp ${SRC_DIR}/errorDocument.cpp ${SRC_DIR}/deleteRootDirectory.cpp ${SRC_DIR}/compress.cpp ${SRC_DIR}/directoryIndex.cpp ${SRC_DIR}/hostBind.cpp ${SRC_DIR}/passwd.cpp ${SRC_DIR}/vhost.cpp
 
 ifeq ($(FLAGS),-DWITH_MYSQL)
 LIBS=liblog.so libsock.so libprocMySQL.so libsqlOperation.so libftp.so libtools.so libconfig.so libvirtualHost.so libaction.so libhostOperation.so libthreadpool.so
@@ -87,13 +87,19 @@ install:
 	-mkdir -p /usr/local/apache_conf/lib
 	-mkdir -p /usr/local/apache_conf/cfg
 	-mkdir -p /usr/local/apache_conf/bin
+	-mkdir -p /usr/local/apache_conf/installfiles
+	-mkdir -p /usr/local/apache_conf/tpl
 	cp ${TARGET_DIR}/*.so /usr/local/apache_conf/lib
 	cp ${TARGET_DIR}/libzlog.so.1.1 /usr/local/apache_conf/lib
 	cp ${TARGET_DIR}/apache_lib.conf /etc/ld.so.conf.d/
 	/sbin/ldconfig
 	cp ${TARGET_DIR}/apache_conf /usr/local/apache_conf/bin
 	cp ${TARGET_DIR}/zlog.conf /usr/local/apache_conf/cfg
+	cp ${TARGET_DIR}/maxtrans.conf /usr/local/apache_conf/cfg
 	cp ${TARGET_DIR}/apache_conf.conf /usr/local/apache_conf/cfg
+	cp -a ${TARGET_DIR}/superhome /usr/local/apache_conf/installfiles
+	cp ${TARGET_DIR}/shopex2.zip /usr/local/apache_conf/installfiles
+	cp ${TARGET_DIR}/*.sample /usr/local/apache_conf/tpl
 .PHONY:uninstall
 
 uninstall:

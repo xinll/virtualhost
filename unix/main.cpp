@@ -66,6 +66,8 @@ int main(int argc,char **argv)
 			}
 			else if(tmp == 0)
 			{
+				mode_t mode = S_IWGRP | S_IWOTH;
+				umask(mode);
 				Children();
 			}
 			else
@@ -135,7 +137,7 @@ int Children()
 		exit(EXIT_FAILURE);
 	}
 
-	if(tpool_init(10) != 0)
+	if(tpool_init(5) != 0)
 	{
 		WriteLog(mainlog,INFO,"can't create the thread pool!!!");
 		exit(1);
