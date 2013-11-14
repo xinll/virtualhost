@@ -15,7 +15,7 @@ static char log[] = "virtualhost";
 
 bool ProcHost(vector<pair<string,string> > &vt_param,string &errInfo)
 {
-	bool success = true;
+	bool restartFTP = false;
 	if(vt_param.size() < 2)
 	{
 		errInfo.append("too less param.");
@@ -45,8 +45,7 @@ bool ProcHost(vector<pair<string,string> > &vt_param,string &errInfo)
 			return false;
 		}
 	}
-
-	else if(IsEqualString(value,RESTORECONF))
+/*	else if(IsEqualString(value,RESTORECONF))
 	{
 		string ftpName = GetValue(USERNAME,vt_param);
 
@@ -64,7 +63,7 @@ bool ProcHost(vector<pair<string,string> > &vt_param,string &errInfo)
 			}
 			goto RESTART;
 		}
-	}
+	}*/
 	else if(IsEqualString(value,DELETEDIR))
 	{
 		DeleteRootDirectory(vt_param,errInfo);
@@ -116,6 +115,18 @@ bool ProcHost(vector<pair<string,string> > &vt_param,string &errInfo)
 			return false;
 		}
 	}
+	else if(IsEqualString(value,MANAGER))
+	{
+		if(!Manager(vt_param,errInfo,restartFTP))
+		{
+			return false;
+		}
+	}
+	else if(IsEqualString(value,REMOVEHOST))
+	{
+		if(!DeleteVHost(vt_param,errInfo))
+			return false;
+	}
 	else
 	{
 		errInfo.append("unknow operation:");
@@ -127,8 +138,21 @@ bool ProcHost(vector<pair<string,string> > &vt_param,string &errInfo)
 	{
 		char info[] ="bak the config file failed.";
 		WriteLog(log,ERROR,info);
-		//errInfo.append(info);
-		//success = false;
+	}
+	
+	if(restartFTP)
+	{
+		int ret = system("/sbin/service proftpd reload>/dev/null");
+	
+		if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
+		{
+			return true;
+		}
+		else
+		{
+			errInfo.append("failed to restart ftp.");
+			return false;
+		}
 	}
 
 RESTART:
@@ -136,7 +160,7 @@ RESTART:
 	
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
 	{
-		return success;
+		return true;
 	}
 	else
 	{

@@ -16,9 +16,6 @@ bool ProcPasswd(vector<pair<string,string> > &vt_param,string &error)
 {
 	WriteParam(log,vt_param,"");
 	
-	if(!CheckParam(vt_param,4,error))
-		return false;
-
 	string userName = GetValue(USERNAME,vt_param);
 	string pwd = GetValue(PWD,vt_param);
 

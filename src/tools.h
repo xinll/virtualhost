@@ -49,14 +49,15 @@ void WriteParam(char *c,vector<pair<string,string> > &vt_param,string success);
 
 void SplitByComas(string &source,vector<string> &result,char split = ',');
 
-bool CheckParam(vector<pair<string,string> > &vt_param,int count,string &errInfo);
-bool InitEnv(CVirtualHost **virtualHost,string &userName,string &errInfo,char *category);
+bool InitEnv(CVirtualHost **virtualHost,string &userName,char *category);
 	
-bool WriteVirtualHost(CVirtualHost *virtualHost,string &errInfo,char *category);
-
 bool ValidateParamEmpty(const char* value);
 
 string GetValue(string key,vector<pair<string,string> > &vt_param);
 
 string MakePath(string &path,string file);
+
+string MakeUserRoot(string &userName);
+
+string GetMaxTrans(string &max_trans);
 #endif

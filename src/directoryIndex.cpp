@@ -16,9 +16,6 @@ bool ProcIndex(vector<pair<string,string> > &vt_param,string &error)
 {
 	WriteParam(log,vt_param,"");
 
-	if(!CheckParam(vt_param,4,error))
-		return false;
-
 	string userName = GetValue(USERNAME,vt_param);
 	string index = GetValue(INDEX,vt_param);
 
@@ -31,7 +28,7 @@ bool ProcIndex(vector<pair<string,string> > &vt_param,string &error)
 	}
 
 	CVirtualHost *virtualHost;
-	bool success = InitEnv(&virtualHost,userName,error,log);
+	bool success = InitEnv(&virtualHost,userName,log);
 
 	if(success)
 	{
@@ -62,7 +59,7 @@ bool ProcIndex(vector<pair<string,string> > &vt_param,string &error)
 		vt.clear();
 		vt.push_back(param);
 		virtualHost->AddDirective(directive,it,vt,4);
-		success = WriteVirtualHost(virtualHost,error,log);
+		success = virtualHost->SaveFile();
 	}
 
 	success ? WriteParam(log,vt_param,"success") : WriteParam(log,vt_param,"failed");

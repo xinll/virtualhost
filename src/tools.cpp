@@ -268,7 +268,7 @@ bool IsEqualString(string first,string second)
 
 bool BakSysInfo()
 {
-	string backupDir = GetEnvVar(BACKUPDIR);
+	string backupDir = GetEnvVar("BACKUPDIR");
 	if(backupDir.empty())
 		backupDir = BACKUPDIR;
 
@@ -539,67 +539,22 @@ void SplitByComas(string &source,vector<string> &result,char split)
 	}
 }
 
-bool CheckParam(vector<pair<string,string> > &vt_param,int count,string &errInfo)
+bool InitEnv(CVirtualHost **virtualHost,string &userName,char *category)
 {
-	if(vt_param.size() < count)
-	{
-		errInfo.append("too less param.");
-		return false;
-	}
-	return true;
-}
-
-
-bool WriteVirtualHost(CVirtualHost *virtualHost,string &errInfo,char *category)
-{
-	string userName = virtualHost->GetFileName();
-	if(!virtualHost->SaveFile())
-	{
-		errInfo.append("write the config file failed.");
-		string err = virtualHost->GetLastErrorStr();
-		WriteLog(category,ERROR,err.c_str());
-		if(RestoreConf(userName))
-		{
-			errInfo.append("restore the config file failed.");
-			char tmp[256];
-			sprintf(tmp,"restore the config file failed:%s.conf",userName.c_str());
-			WriteLog(category,ERROR,tmp);
-		}
-		return false;
-	}
-	return true;
-}
-
-bool InitEnv(CVirtualHost **virtualHost,string &userName,string &errInfo,char *category)
-{
-	 (*virtualHost) = CVirtualHost::GetVirtualHost(userName);
+	string error;
+	(*virtualHost) = CVirtualHost::GetVirtualHost(userName);
 	if((*virtualHost) == NULL)
 	{
-		errInfo.append("the file is using:");
-		errInfo.append(userName);
-		char err[256];
-		sprintf(err,"the config file is using %s.conf",userName.c_str());
-		WriteLog(category,ERROR,err);
+		error.append("the file is using:");
+		error.append(userName);
+		WriteLog(category,ERROR,error.c_str());
 		return false;
 	}
-
-/*	if(!BakConf(userName))
-	{
-		errInfo.append("bak the config file failed:");
-		errInfo.append(userName);
-		char err[256];
-
-		sprintf(err,"backup the config file failed:%s.conf",userName.c_str());
-		WriteLog(category,ERROR,err);
-
-		return false;
-	}*/
 
 	if(!(*virtualHost)->LoadFile())
 	{
-		string err = (*virtualHost)->GetLastErrorStr();
-		errInfo.append(err);
-		WriteLog(category,ERROR,err.c_str());
+		error = (*virtualHost)->GetLastErrorStr();
+		WriteLog(category,ERROR,error.c_str());
 		return false;
 	}
 	return true;
@@ -673,4 +628,59 @@ string MakePath(string &path,string file)
 		path.append(file);
 	}
 	return path;
+}
+
+string MakeUserRoot(string &userName)
+{
+	string path = GetEnvVar("USER_ROOT");
+	if(path.empty())
+	{
+		path = USER_ROOT;
+	}
+	MakePath(path,userName);
+	MakePath(path,"/home/wwwroot");
+	return path;
+}
+
+string GetMaxTrans(string &max_trans)
+{
+	vector<string> vt;
+	if(!ReadFile(&vt,"/usr/local/apache_conf/cfg/maxtrans.conf"))
+		return "";
+	int size = vt.size();
+	vector<string> tmp;
+	string max = "";
+	string defaultMax;
+	int i = 0;
+	for(; i < size; i++)
+	{
+		tmp.clear();
+		SplitByComas(vt[i],tmp,':');
+		if(tmp.size() < 2)
+			continue;
+		if(strcmp(max_trans.c_str(),tmp[0].c_str()) == 0)
+		{
+			max = tmp[1];
+			break;
+		}
+		if(strcmp(tmp[0].c_str(),"0") == 0)
+		{
+			defaultMax = tmp[1];
+		}
+	}
+	if(i == size)
+	{
+		if(defaultMax.empty())
+			return "";
+		else
+			max = defaultMax;
+	}
+	size_t pos = max.rfind(NEWLINE);
+	if(pos != string::npos && pos == (max.size() - strlen(NEWLINE)))
+	{
+		max = max.substr(0,max.size() - strlen(NEWLINE));
+	}
+	max_trans = max;
+
+	return max;
 }

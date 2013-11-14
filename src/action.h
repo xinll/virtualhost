@@ -17,4 +17,5 @@
 #include "hostBind.h"
 #include "passwd.h"
 #include "vhost.h"
+#include "manager.h"
 #endif

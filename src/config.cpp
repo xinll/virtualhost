@@ -17,7 +17,7 @@ bool Config::LoadConfigFile(string file)
 
 string Config::GetValue(string key)
 {
-	vector<pair<string,string> >::iterator it = vt_configInfo.begin();
+/*	vector<pair<string,string> >::iterator it = vt_configInfo.begin();
 
 	for(;it != vt_configInfo.end();it++)
 	{
@@ -26,24 +26,25 @@ string Config::GetValue(string key)
 			return (*it).second;
 		}
 	}
-	
+*/	
 	string retValue = "";
 	vector<string>::iterator iter = vt_config.begin();
-	for(;iter != vt_config.end(); )
+	vector<string> vt;
+	for(;iter != vt_config.end(); iter++)
 	{
-		if((*iter).find(key) == 0)
+		vt.clear();
+		SplitByComas((*iter),vt,'=');
+		if(vt.size() != 2)
 		{
-			size_t found = (*iter).find("=");
-			if(found != string::npos)
-			{
-				retValue = (*iter).substr(found + 1,(*iter).length() - strlen(NEWLINE) - found - 1);
-				pair<string,string> p = make_pair(key,retValue);
-				vt_configInfo.push_back(p);
-			}
-			vt_config.erase(iter);
 			continue;
 		}
-		iter++;
+		else
+		{
+			if(vt[0].compare(key) == 0)
+			{
+				retValue = vt[1].substr(0,vt[1].length() - strlen(NEWLINE));
+			}
+		}
 	}
 	return retValue;
 }

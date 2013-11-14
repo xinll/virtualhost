@@ -18,23 +18,21 @@ bool Compress(vector<pair<string,string> > &vt_param, string &errInfo)
 {
 	WriteParam(log,vt_param,"");
 	
-	if(!CheckParam(vt_param,5,errInfo))
-	{
-		return false;
-	}
 	string userName = GetValue(USERNAME,vt_param);
 	string zipName = GetValue(FILENAME,vt_param);
 	string dir = GetValue(DIRECTORY,vt_param);
 	
 	if(!ValidateParamEmpty(userName.c_str()) || !ValidateParamEmpty(zipName.c_str()))
 	{
-		char info[] = "ftpName or zipName invalid.";
-		errInfo.append(info);
-		WriteLog(log,ERROR,info);
+		errInfo.append("compress failed.");
+		WriteParam(log,vt_param,"failed. ftpName or zipName invalid.");
 		return false;
 	}
 
 	string path = GetEnvVar("USER_ROOT");
+	if(path.empty())
+		path = USER_ROOT;
+
 	MakePath(path,userName);
 	MakePath(path,"home");
 	
@@ -46,9 +44,10 @@ bool Compress(vector<pair<string,string> > &vt_param, string &errInfo)
 	DIR *d;
 	if((d = opendir(path.c_str())) == NULL)
 	{
-		char info[] = "directory does not exist.";
-		errInfo.append(info);
-		WriteLog(log,ERROR,info);
+		dir.append(" does not exist");
+		errInfo.append(dir);
+
+		WriteParam(log,vt_param,"failed. dir does not exist");
 		return false;
 	}
 
@@ -60,7 +59,7 @@ bool Compress(vector<pair<string,string> > &vt_param, string &errInfo)
 		chdir("/");
 		char info[] = "the fileName is too long.";
 		errInfo.append(info);
-		WriteLog(log,ERROR,info);
+		WriteParam(log,vt_param,"failed. the fileName is too long");
 		return false;
 	}
 	int ret = system(buf);
@@ -77,17 +76,16 @@ bool Compress(vector<pair<string,string> > &vt_param, string &errInfo)
 		}
 		else
 		{
-			char info[] = "can't change the owner or group.";
-			errInfo.append(info);
-			WriteLog(log,ERROR,info);
+			unlink(zipPath.c_str());
+			errInfo.append("compress failed.");
+			WriteParam(log,vt_param,"failed. chown failed.");
 			return false;
 		}
 	}
 	else
 	{
-		char info[] ="can't compress the directory";
-		errInfo.append(info);
-		WriteLog(log,ERROR,info);
+		errInfo.append("compress failed.");
+		WriteParam(log,vt_param,"failed.");
 		return false;
 	}
 }
@@ -148,19 +146,14 @@ bool UnCompress(vector<pair<string,string> > &vt_param, string &errInfo)
 {
 	WriteParam(log,vt_param,"");
 	
-	if(!CheckParam(vt_param,5,errInfo))
-	{
-		return false;
-	}
 	string userName = GetValue(USERNAME,vt_param);
 	string zipName = GetValue(FILENAME,vt_param);
 	string dir = GetValue(DIRECTORY,vt_param);
 	
 	if(!ValidateParamEmpty(userName.c_str()) || !ValidateParamEmpty(zipName.c_str()))
 	{
-		char info[] = "ftpName or zipName invalid.";
-		errInfo.append(info);
-		WriteLog(log,ERROR,info);
+		errInfo.append("compress failed.");
+		WriteParam(log,vt_param,"failed. ftpName or zipName invalid.");
 		return false;
 	}
 	
@@ -178,7 +171,7 @@ bool UnCompress(vector<pair<string,string> > &vt_param, string &errInfo)
 	{
 		char info[] = "the file does not exist.";
 		errInfo.append(info);
-		WriteLog(log,ERROR,info);
+		WriteParam(log,vt_param,"failed. the file does not exist");
 		return false;
 	}
 
@@ -194,9 +187,9 @@ bool UnCompress(vector<pair<string,string> > &vt_param, string &errInfo)
 		sprintf(fileName,"/tmp/%d",t);
 		if(!ReadFile(&vt,fileName) || vt.size() != 1)
 		{
-			char info[] = "can't get the file's type.";
-			errInfo.append(info);
-			WriteLog(log,ERROR,info);
+			errInfo.append("uncompress failed.");
+			WriteParam(log,vt_param,"failed. can't get the file's type");
+			unlink(fileName);
 			return false;
 		}
 		unlink(fileName);
@@ -205,7 +198,7 @@ bool UnCompress(vector<pair<string,string> > &vt_param, string &errInfo)
 		{
 			char info[] = "unknow compress format.";
 			errInfo.append(info);
-			WriteLog(log,ERROR,info);
+			WriteParam(log,vt_param,"failed. unknow compress format");
 			return false;
 		}
 		DIR *dir = NULL;
@@ -218,25 +211,20 @@ bool UnCompress(vector<pair<string,string> > &vt_param, string &errInfo)
 		{
 			closedir(dir);
 		}
-		/*if(chdir(path.c_str()) != 0)
-		{
-			char info[] ="open the destination directory failed.";
-			errInfo.append(info);
-			WriteLog(log,ERROR,info);
-			return false;
-		}*/
 
 		time_t t = time(NULL);
 		char tmpDir[PATH_MAX];
 		sprintf(tmpDir,"/tmp/%d",t);
 		if(mkdir(tmpDir,S_IWUSR | S_IRUSR | S_IRGRP | S_IWGRP) != 0)
 		{
-			errInfo.append("can't create the tmp directory.");
+			errInfo.append("uncpmpress failed.");
+			WriteParam(log,vt_param,"failed. create the temp directory failed");
 			return false;
 		}
 		if(chdir(tmpDir) != 0)
 		{
-			errInfo.append("change to the tmp directory failed.");
+			errInfo.append("uncpmpress failed.");
+			WriteParam(log,vt_param,"failed. change to the temp directory failed");
 			return false;
 		}
 		
@@ -260,17 +248,16 @@ bool UnCompress(vector<pair<string,string> > &vt_param, string &errInfo)
 				}
 				else
 				{
-					char info[] = "move form temp directory to destination failed.";
-					errInfo.append(info);
-					WriteLog(log,ERROR,info);
+					WriteParam(log,vt_param,"failed. move form temp directory to destination failed.");
+					errInfo.append("uncompress failed.");
 					return false;
 				}
 			}
 			else
 			{
-				char info[] = "can't change the owner or group.";
-				errInfo.append(info);
-				WriteLog(log,ERROR,info);
+				WriteLog(log,ERROR,cmd);
+				WriteParam(log,vt_param,"failed. can't change the owner or group.");
+				errInfo.append("uncompress failed.");
 				return false;
 			}
 			return true;
@@ -278,18 +265,15 @@ bool UnCompress(vector<pair<string,string> > &vt_param, string &errInfo)
 		else
 		{
 			WriteLog(log,ERROR,tmp.c_str());
-			char info[] = "uncompress the file failed.";
-			errInfo.append(info);
-			WriteLog(log,ERROR,info);
+			errInfo.append("uncompress failed.");
+			WriteParam(log,vt_param,"failed");
 			return false;
 		}
 	}
 	else
 	{
-		char info[] = "can't get the file's type.";
-		errInfo.append(info);
-		WriteLog(log,ERROR,info);
+		errInfo.append("uncompress failed.");
+		WriteParam(log,vt_param,"failed. can't get the file's type");
 		return false;
 	}
-	
 }

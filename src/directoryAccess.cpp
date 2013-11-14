@@ -242,14 +242,6 @@ bool DirectoryAccess(string &action,string &ip,string &dir,CVirtualHost *virtual
 	AddSlash(path);
 
 	path.append("home");
-/*	if(dir.empty())
-	{
-		path.append("/wwwroot");
-	}
-	else
-	{
-		path = MakePath(path,dir);
-	}*/
 
 	MakePath(path,"/wwwroot");
 	MakePath(path,dir);
@@ -338,9 +330,6 @@ bool ProcDirectoryAccess(vector<pair<string,string> > &vt_param,string &errInfo)
 {
 	WriteParam(directoryAccess,vt_param,"");
 
-	if(!CheckParam(vt_param,5,errInfo))
-		return false;
-
 	string action = GetValue(ACTION,vt_param);
 	string ip = GetValue(ADDRESS,vt_param);
 	string dir = GetValue(DIRECTORY,vt_param);
@@ -355,7 +344,7 @@ bool ProcDirectoryAccess(vector<pair<string,string> > &vt_param,string &errInfo)
 	}
 
 	CVirtualHost *virtualHost;
-	bool success = InitEnv(&virtualHost,username,errInfo,directoryAccess);
+	bool success = InitEnv(&virtualHost,username,directoryAccess);
 	
 	if(success)
 	{
@@ -364,11 +353,14 @@ bool ProcDirectoryAccess(vector<pair<string,string> > &vt_param,string &errInfo)
 			errInfo.append("the directory or the ip  is not valid.");
 	}
 	if(success)
-		success = WriteVirtualHost(virtualHost,errInfo,directoryAccess);
+		success = virtualHost->SaveFile();
 	if(success)
 		WriteParam(directoryAccess,vt_param,"success");
 	else
+	{
+		errInfo.append("failed to process your request.");
 		WriteParam(directoryAccess,vt_param,"failed");
+	}
 	CVirtualHost::ReleaseVirtualHost(username);
 	return success;
 }

@@ -22,7 +22,7 @@
 
 using namespace std;
 
-char log[] = "vhost";
+static char log[] = "vhost";
 void Replace(vector<pair<string,string> > &vt_param, vector<string> &vt)
 {
 	vector<string>::iterator it = vt.begin();
@@ -320,49 +320,6 @@ bool SetQuota(string &userName,string &max_trans)
 	}
 }
 
-string GetMaxTrans(string &max_trans)
-{
-	vector<string> vt;
-	if(!ReadFile(&vt,"/usr/local/apache_conf/cfg/maxtrans.conf"))
-		return "";
-	int size = vt.size();
-	vector<string> tmp;
-	string max = "";
-	string defaultMax;
-	int i = 0;
-	for(; i < size; i++)
-	{
-		tmp.clear();
-		SplitByComas(vt[i],tmp,':');
-		if(tmp.size() < 2)
-			continue;
-		if(strcmp(max_trans.c_str(),tmp[0].c_str()) == 0)
-		{
-			max = tmp[1];
-			break;
-		}
-		if(strcmp(tmp[0].c_str(),"0") == 0)
-		{
-			defaultMax = tmp[1];
-		}
-	}
-	if(i == size)
-	{
-		if(defaultMax.empty())
-			return "";
-		else
-			max = defaultMax;
-	}
-	size_t pos = max.rfind(NEWLINE);
-	if(pos != string::npos && pos == (max.size() - strlen(NEWLINE)))
-	{
-		max = max.substr(0,max.size() - strlen(NEWLINE));
-	}
-	max_trans = max;
-
-	return max;
-}
-
 bool InstallFiles(string &userName)
 {
 	string path = GetEnvVar("USER_ROOT");
@@ -441,11 +398,11 @@ bool Clean(string &userName)
 		path = USER_ROOT;
 	MakePath(path,userName);
 
-	if(snprintf(cmd,PATH_MAX,"rm -rf %s",userName.c_str()) >= PATH_MAX)
+	if(snprintf(cmd,PATH_MAX,"rm -rf %s",path.c_str()) >= PATH_MAX)
 	{
 		;
 	}
-	int ret = system(path.c_str());
+	int ret = system(cmd);
 	
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
 	{
@@ -455,11 +412,28 @@ bool Clean(string &userName)
 		return false;
 }
 
+bool UserExist(string &userName)
+{
+	pthread_mutex_lock(&mutex);
+	setpwent();
+	struct passwd* pwd;
+	bool exist = false;
+	while((pwd = getpwent()) != NULL)
+	{
+		if(strcmp(pwd->pw_name,userName.c_str()) == 0)
+		{
+			exist = true;
+			break;
+		}
+	}
+	endpwent();
+	pthread_mutex_unlock(&mutex);
+	return exist;
+}
+
 bool CreateVHost(vector<pair<string,string> > &vt_param,string &error)
 {
 	WriteParam(log,vt_param,"");
-	if(!CheckParam(vt_param,6,error))
-		return false;
 
 	string userName = GetValue(USERNAME,vt_param);
 	string pwd = GetValue(PWD,vt_param);
@@ -474,6 +448,13 @@ bool CreateVHost(vector<pair<string,string> > &vt_param,string &error)
 	}
 	
 	//添加系统用户
+	//判断用户是否存在
+	if(UserExist(userName))
+	{
+		error.append("user exists.");
+		WriteLog(log,ERROR,"user exists");
+		return false;
+	}
 	if(!CreateUser(userName))
 	{
 		Clean(userName);
@@ -508,11 +489,11 @@ bool CreateVHost(vector<pair<string,string> > &vt_param,string &error)
 	}
 
 	//设置磁盘份额
-/*	if(!SetQuota(userName,max_trans))
+	if(!SetQuota(userName,max_trans))
 	{
 		Clean(userName);
 		return false;
-	}*/
+	}
 
 	//获取连接数
 	max_trans = GetMaxTrans(max_trans);
@@ -537,11 +518,6 @@ bool DeleteVHost(vector<pair<string,string> > &vt_param,string &error)
 {
 	WriteParam(log,vt_param,"");
 	
-	if(!CheckParam(vt_param,3,error))
-	{
-		return false;
-	}
-
 	string userName = GetValue(USERNAME,vt_param);
 	if(!ValidateParamEmpty(userName.c_str()))
 	{
@@ -555,12 +531,15 @@ bool DeleteVHost(vector<pair<string,string> > &vt_param,string &error)
 		char info[] = "delete the config file failed.";
 		WriteLog(log,ERROR,info);
 	}
+	BakConf();
+
 	if(!DeleteUser(userName))
 	{
 		char info[] = "delete the user failed.";
 		WriteLog(log,ERROR,info);
 	}
-	
+	BakSysInfo();
+
 	string path = GetEnvVar("USER_ROOT");
 	if(path.empty())
 	{
@@ -570,9 +549,11 @@ bool DeleteVHost(vector<pair<string,string> > &vt_param,string &error)
 	
 	string owner = "root";
 	ChangeOwner(path.c_str(),owner);
-
+	
+	time_t t = time(NULL);
+	struct tm *local = gmtime(&t);
 	char cmd[PATH_MAX];
-	if(snprintf(cmd,PATH_MAX,"mv /var/www/virtual/%s /var/www/virtual/%s.`data +%Y%m%d`.drop") >= PATH_MAX)
+	if(snprintf(cmd,PATH_MAX,"mv /var/www/virtual/%s /var/www/virtual/%s.%d%d%d.drop",userName.c_str(),userName.c_str(),local->tm_year + 1900 ,local->tm_mon + 1,local->tm_mday) >= PATH_MAX)
 	{
 		char info[] = "the mv command is too long.";
 		WriteLog(log,ERROR,info);
@@ -581,7 +562,6 @@ bool DeleteVHost(vector<pair<string,string> > &vt_param,string &error)
 	int ret = system(cmd);
 	if(ret != -1 && WIFEXITED(ret) && WEXITSTATUS(ret) == 0)
 	{
-		BakSysInfo();
 		return true;
 	}
 	else

@@ -52,6 +52,11 @@ typedef	int					MC_SOCKET;
 
 //默认socket接收缓冲区大小
 #define BUF_LENGTH          10240
+
+#ifndef PATH_MAX
+#define PATH_MAX 256
+#endif
+
 //socket键值对分隔符
 #define SPLIT               "\r\n"
 
@@ -65,6 +70,7 @@ typedef	int					MC_SOCKET;
 //虚拟主机下具体功能,对应于nfunc
 #define ERRORDOCUMENT       "errorDocument"
 #define CREATEHOST          "createHost"
+#define REMOVEHOST          "removeHost"
 #define FILEPERMISSION      "filePermission"
 #define RESTORECONF         "restoreConf"
 #define MYSQLBACK           "backupMySQL"
@@ -80,7 +86,25 @@ typedef	int					MC_SOCKET;
 #define DIRECTORYINDEX      "DirectoryIndex"
 #define SERVERALIAS         "ServerAlias"
 #define PASSWD              "passwd"
+#define MANAGER             "manager"
 
+//管理功能
+#define EXPIRED             "expired"
+#define STOP                "stop"
+#define STOP2               "stop2"
+#define STOP3               "stop3"
+#define OPEN                "open"
+#define QUOTA               "quota"
+#define STARTFTP            "startftp"
+#define STOPFTP             "stopftp"
+#define EXPTME              "/var/www/html/exptme"
+#define STOPDIR             "/var/www/html/stop"
+#define STOPDIR2            "/var/www/html/stop2"
+#define STOPDIR3            "/var/www/html/stop3"
+#define FTPUSERS            "/etc/ftpusers"
+#define DOCUMENTROOT        "DocumentRoot"
+#define SIZE                "size"
+//开通主机
 #define DOMAIN              "domain"
 #define MAX_TRANS           "maxtrans"
 

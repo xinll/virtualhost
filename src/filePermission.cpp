@@ -17,9 +17,6 @@ bool ProcFilePermission(vector<pair<string,string> > &vt_param,string &errInfo)
 {	
 	WriteParam(filePermission,vt_param,"");
 
-	if(!CheckParam(vt_param,4,errInfo))
-		return false;
-
 	int permission = -1;
 	string directory = GetValue(DIRECTORY,vt_param);
 	string userName = GetValue(USERNAME,vt_param);
@@ -42,7 +39,7 @@ bool ProcFilePermission(vector<pair<string,string> > &vt_param,string &errInfo)
 	}
 
 	CVirtualHost *virtualHost;
-	bool success = InitEnv(&virtualHost,userName,errInfo,filePermission);
+	bool success = InitEnv(&virtualHost,userName,filePermission);
 
 	if(success)
 	{
@@ -111,7 +108,7 @@ bool ProcFilePermission(vector<pair<string,string> > &vt_param,string &errInfo)
 			}
 		}
 		
-		success = WriteVirtualHost(virtualHost,errInfo,filePermission);
+		success = virtualHost->SaveFile();
 	}
 	if(success)
 		WriteParam(filePermission,vt_param,"success");

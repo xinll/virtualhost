@@ -155,9 +155,6 @@ bool ProcRedirect(vector<pair<string,string> > &vt_param,string &errInfo)
 {
 	WriteParam(redirect,vt_param,"");
 
-	if(!CheckParam(vt_param,4,errInfo))
-		return false;
-
 	string userName = GetValue(USERNAME,vt_param);
 	string url = GetValue(URL,vt_param);
 
@@ -169,7 +166,7 @@ bool ProcRedirect(vector<pair<string,string> > &vt_param,string &errInfo)
 	}
 
 	CVirtualHost *virtualHost;
-	bool success = InitEnv(&virtualHost,userName,errInfo,redirect);
+	bool success = InitEnv(&virtualHost,userName,redirect);
 
 	if(success)
 	{
@@ -207,12 +204,15 @@ bool ProcRedirect(vector<pair<string,string> > &vt_param,string &errInfo)
 		}
 	}
 	if(success)
-		success = WriteVirtualHost(virtualHost,errInfo,redirect);
+		success = virtualHost->SaveFile();
 
 	if(success)
 		WriteParam(redirect,vt_param,"success");
 	else
-		WriteParam(redirect,vt_param,"failed");
+	{
+		errInfo.append("failed to process your resuest.");
+		WriteParam(redirect,vt_param,"failed. write the config file failed.");
+	}
 	CVirtualHost::ReleaseVirtualHost(userName);
 	return success;
 }

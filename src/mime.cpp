@@ -60,9 +60,6 @@ bool ProcMineType(vector<pair<string,string> > &vt_param,string &errInfo)
 {
 	WriteParam(mine,vt_param,"");
 
-	if(!CheckParam(vt_param,5,errInfo))
-		return false;
-
 	string userName = GetValue(USERNAME,vt_param);
 	string action = GetValue(ACTION,vt_param);
 	string mineType = GetValue(MINETYPE,vt_param);
@@ -73,19 +70,26 @@ bool ProcMineType(vector<pair<string,string> > &vt_param,string &errInfo)
 		if(!ValidateParamEmpty(action.c_str()))
 		{
 			errInfo.append("mineProcess can't be empty.");
-			WriteLog(mine,ERROR,"mineProcess can't be empty");
+			WriteParam(mine,vt_param,"failed. process can't be empty");
 			return false;
 		}
 	}
+
 	if(!ValidateParamEmpty(mineType.c_str()) || !ValidateParamEmpty(userName.c_str()) || !ValidateParamEmpty(action.c_str()))
 	{
 		errInfo.append("ftpName or mineType or action not valid.");
-		WriteLog(mine,ERROR,"ftpName or mineType or action invalid");
+		WriteParam(mine,vt_param,"ftpName or mineType or action invalid");
 		return false;
 	}
 
 	CVirtualHost *virtualHost;
-	bool success = InitEnv(&virtualHost,userName,errInfo,mine);
+	bool success = InitEnv(&virtualHost,userName,mine);
+	if(!success)
+	{
+		errInfo.append("failed to process your request.");
+		CVirtualHost::ReleaseVirtualHost(userName);
+		return false;
+	}
 
 	if(success && action.compare("add") == 0)
 	{
@@ -96,11 +100,14 @@ bool ProcMineType(vector<pair<string,string> > &vt_param,string &errInfo)
 		DeleteMineType(mineType,virtualHost);
 	}
 	if(success)
-		success = WriteVirtualHost(virtualHost,errInfo,mine);
+		success = virtualHost->SaveFile();
 	if(success)
 		WriteParam(mine,vt_param,"success");
 	else
+	{
+		WriteParam(mine,vt_param,"failed. write the config file failed");
 		WriteParam(mine,vt_param,"failed");
+	}
 	CVirtualHost::ReleaseVirtualHost(userName);
 	return success;
 }

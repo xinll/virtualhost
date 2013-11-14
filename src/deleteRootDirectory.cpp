@@ -7,18 +7,18 @@
 #include "deleteRootDirectory.h"
 #include "tools.h"
 
-static char deleteDirectory[] = "deleteDirectoryLog";
+static char log[] = "deleteDirectoryLog";
 void DeleteRootDirectory(vector<pair<string,string> >&vt_param,string &errInfo)
 {
-	WriteParam(deleteDirectory,vt_param,"");
-	if(vt_param.size() < 3)
+	WriteParam(log,vt_param,"");
+
+	string userName = GetValue("USERNAME",vt_param);
+	if(!ValidateParamEmpty(userName.c_str()))
 	{
-		errInfo.append("too less param.");
-		WriteParam(deleteDirectory,vt_param,"failed");
+		WriteParam(log,vt_param,"failed. the ftpName can't be empty");
+		errInfo.append("delete the directory failed.");
 		return;
 	}
-
-	string userName = vt_param[2].second;
 	string path = GetEnvVar("USER_ROOT");
 	if(path.empty())
 	{
@@ -27,5 +27,5 @@ void DeleteRootDirectory(vector<pair<string,string> >&vt_param,string &errInfo)
 	path.append(userName);
 	path.append("/home/wwwroot");
 	RmDir(path.c_str());
-	WriteParam(deleteDirectory,vt_param,"success");
+	WriteParam(log,vt_param,"success");
 }

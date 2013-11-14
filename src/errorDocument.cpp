@@ -17,18 +17,14 @@ bool ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
 {
 	WriteParam(errorDocument,vt_param,"");
 
-	if(!CheckParam(vt_param,5,errInfo))
-		return false;
-
 	string errorNum = GetValue(ERRORNMSTR,vt_param);
 	string errorPage = GetValue(ERRORPAGE,vt_param);
 	string userName = GetValue(USERNAME,vt_param);
 
 	if(!ValidateParamEmpty(errorNum.c_str()) || !ValidateParamEmpty(userName.c_str()))
 	{
-		char info[] = "errorNum or ftpName invalid.";
-		WriteLog(errorDocument,ERROR,info);
-		errInfo.append(info);
+		WriteParam(errorDocument,vt_param,"failed. errorNum or ftpName invalid");
+		errInfo.append("failed to process erroordocument.");
 		return false;
 	}
 
@@ -38,7 +34,7 @@ bool ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
 	}
 
 	CVirtualHost *virtualHost;
-	bool success = InitEnv(&virtualHost,userName,errInfo,errorDocument);
+	bool success = InitEnv(&virtualHost,userName,errorDocument);
 
 	if(success)
 	{
@@ -57,12 +53,21 @@ bool ProcErrorDocument(vector<pair<string,string> > &vt_param,string &errInfo)
 		}
 		vt_tmp.push_back(errorPage);
 		virtualHost->AddDirective(directive,it_directive,vt_tmp,4);
-		success = WriteVirtualHost(virtualHost,errInfo,errorDocument);
+		success = virtualHost->SaveFile();
+	}
+	else
+	{
+		errInfo.append("failed to process erroordocument.");
+		CVirtualHost::ReleaseVirtualHost(userName);
+		return false;
 	}
 	if(success)
 		WriteParam(errorDocument,vt_param,"success");
 	else
-		WriteParam(errorDocument,vt_param,"failed");
+	{
+		WriteParam(errorDocument,vt_param,"failed.write the config file failed");
+		errInfo.append("failed to process erroordocument.");
+	}
 	CVirtualHost::ReleaseVirtualHost(userName);
 	return success;
 }
