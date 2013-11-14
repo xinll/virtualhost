@@ -1,0 +1,7 @@
+*.exe
+/nt/apache_conf/Debug/*
+/nt/apache_conf/Debug/*.*
+unix/apache_conf.conf
+unix/bak/*
+unix/script/*
+unix/tmp/*.*
