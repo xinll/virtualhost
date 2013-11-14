@@ -4,7 +4,7 @@ TARGET_DIR=tmp
 TARGET=${TARGET_DIR}/apache_conf
 OBJS=${TARGET_DIR}/main.o
 
-ACTIONDEPS=${SRC_DIR}/redirect.cpp ${SRC_DIR}/mime.cpp ${SRC_DIR}/filePermission.cpp ${SRC_DIR}/directoryAccess.cpp ${SRC_DIR}/errorDocument.cpp ${SRC_DIR}/deleteRootDirectory.cpp ${SRC_DIR}/compress.cpp ${SRC_DIR}/directoryIndex.cpp ${SRC_DIR}/hostBind.cpp ${SRC_DIR}/passwd.cpp ${SRC_DIR}/vhost.cpp
+ACTIONDEPS=${SRC_DIR}/redirect.cpp ${SRC_DIR}/mime.cpp ${SRC_DIR}/filePermission.cpp ${SRC_DIR}/directoryAccess.cpp ${SRC_DIR}/errorDocument.cpp ${SRC_DIR}/deleteRootDirectory.cpp ${SRC_DIR}/compress.cpp ${SRC_DIR}/directoryIndex.cpp ${SRC_DIR}/hostBind.cpp ${SRC_DIR}/passwd.cpp ${SRC_DIR}/vhost.cpp ${SRC_DIR}/manager.cpp
 
 ifeq ($(FLAGS),-DWITH_MYSQL)
 LIBS=liblog.so libsock.so libprocMySQL.so libsqlOperation.so libftp.so libtools.so libconfig.so libvirtualHost.so libaction.so libhostOperation.so libthreadpool.so
